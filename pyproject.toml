@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aisec-suite"
+version = "0.1.0"
+description = "One command that runs mcpaudit, memsentry and ragsentry on a repo and emits SARIF for GitHub code scanning."
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Pyhroff" }]
+requires-python = ">=3.10"
+dependencies = ["typer>=0.12"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+aisec = "aisec.cli:app"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["aisec*"]
