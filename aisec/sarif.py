@@ -7,6 +7,10 @@ from aisec import __version__
 from aisec.model import Finding
 
 _LEVEL = {"critical": "error", "high": "error", "medium": "warning", "low": "note"}
+# GitHub ranks code-scanning alerts by this CVSS-like number (>=9 critical, 7-8.9 high, 4-6.9 medium, <4 low).
+_SECURITY_SEVERITY = {"critical": "9.5", "high": "8.0", "medium": "5.5", "low": "2.0"}
+_HELP = {"mcpaudit": "https://github.com/Pyhroff/mcpaudit", "memsentry": "https://github.com/Pyhroff/memsentry",
+         "ragsentry": "https://github.com/Pyhroff/ragsentry"}
 
 
 def _rule_id(f: Finding) -> str:
@@ -19,14 +23,17 @@ def to_sarif(findings: list[Finding]) -> dict:
     for f in findings:
         rid = _rule_id(f)
         rules.setdefault(rid, {"id": rid, "name": rid, "shortDescription": {"text": f.rule},
-                               "properties": {"scanner": f.scanner}})
+                               "helpUri": _HELP.get(f.scanner, "https://github.com/Pyhroff/aisec-suite"),
+                               "properties": {"scanner": f.scanner, "security-severity": _SECURITY_SEVERITY[f.severity],
+                                              "tags": ["security", "ai-security", f.scanner]}})
         results.append({
             "ruleId": rid,
             "level": _LEVEL[f.severity],
             "message": {"text": f.message},
             "locations": [{"physicalLocation": {"artifactLocation": {"uri": f.file.replace("\\", "/")},
                                                 "region": {"startLine": max(1, f.line)}}}],
-            "properties": {"severity": f.severity},
+            "partialFingerprints": {"aisec/v1": f.fingerprint},
+            "properties": {"severity": f.severity, "scanner": f.scanner},
         })
     return {
         "$schema": "https://json.schemastore.org/sarif-2.1.0.json",

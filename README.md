@@ -1,5 +1,7 @@
 # aisec-suite
 
+[![tests](https://github.com/Pyhroff/aisec-suite/actions/workflows/tests.yml/badge.svg)](https://github.com/Pyhroff/aisec-suite/actions/workflows/tests.yml) ![python](https://img.shields.io/badge/python-3.10%E2%80%933.12-blue) ![license](https://img.shields.io/badge/license-MIT-green)
+
 One command that runs three AI-security scanners on a repository and writes SARIF for GitHub code scanning.
 
 | Scanner | What it checks | Input found automatically |
@@ -11,23 +13,37 @@ One command that runs three AI-security scanners on a repository and writes SARI
 No third-party code is executed: tool definitions are read from source, not by launching the server.
 
 ```bash
-pip install -e .            # plus the three scanners, installed from their repos
+pip install "aisec-suite[scanners]"   # also installs pyhroff-mcpaudit, memsentry, pyhroff-ragsentry from PyPI
 aisec scan . --sarif aisec.sarif --fail-on high
 aisec scan . --rag ./docs --json findings.json
 ```
 
-Exit code is 1 when `--fail-on` is set and a finding at or above that severity exists. Use `--include-tests` to also extract tools from tests/examples/fixtures.
+Exit codes: `0` clean, `1` a finding at or above `--fail-on`, `2` a scanner crashed (so a clean result can't be trusted; only with `--fail-on`). Use `--include-tests` to also extract tools from tests/examples/fixtures.
+
+### Adopting it on an existing repo without a wall of red
+```bash
+aisec scan . --write-baseline .aisec-baseline.json     # accept what exists today
+aisec scan . --baseline .aisec-baseline.json --fail-on high   # CI now fails only on NEW findings
+```
+Fingerprints ignore line numbers, so moving code around does not resurface accepted findings. Every run also writes a Markdown table to the GitHub job summary (`--summary`).
 
 ## GitHub Action
-`action.yml` scans, then uploads SARIF with `github/codeql-action/upload-sarif`. Until the scanners are published to a package index, pass an `install` command that installs them:
+One line, no install step; the scanners come from PyPI:
 
 ```yaml
-- uses: Pyhroff/aisec-suite@main
-  with:
-    fail-on: high
-    install: pip install git+https://github.com/Pyhroff/mcpaudit git+https://github.com/Pyhroff/memsentry git+https://github.com/Pyhroff/ragsentry
+permissions:
+  contents: read
+  security-events: write
+steps:
+  - uses: actions/checkout@v4
+  - uses: Pyhroff/aisec-suite@v0.2.0
+    with:
+      fail-on: high
 ```
-(Private scanner repos need a token in that URL. This action has not been run on GitHub yet; only the CLI is tested.)
+
+Inputs: `path`, `fail-on`, `rag-dir`, `baseline`, `install`, `upload-sarif`. Needs `security-events: write` for the upload step. Inputs reach the shell only through quoted env vars, never interpolated into script text.
+
+(The action itself has not yet been run on GitHub Actions; the CLI and adapters are tested, including with fake scanners in CI.)
 
 ## Honest scope
 - Static extraction is best-effort. In a study of 90 public MCP repos it found tools in 53 (about 59%); "no tools found" prints a note and means *unknown*, not *safe*.
@@ -36,4 +52,4 @@ Exit code is 1 when `--fail-on` is set and a finding at or above that severity e
 - Line numbers for extracted tools point at the registration call, not the description text.
 
 ## Development
-`pip install -e ".[dev]" && pytest -q` (8 tests; scanner-dependent tests skip if the scanners are absent).
+`pip install -e ".[dev]" && pytest -q` (adapter tests use in-memory fake scanners and always run; a few end-to-end tests skip unless the real scanners are installed).
