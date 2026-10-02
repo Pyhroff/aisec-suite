@@ -29,7 +29,7 @@ def to_sarif(findings: list[Finding]) -> dict:
         results.append({
             "ruleId": rid,
             "level": _LEVEL[f.severity],
-            "message": {"text": f.message},
+            "message": {"text": f.message + (f" [{f.evidence}]" if f.evidence else "")},
             "locations": [{"physicalLocation": {"artifactLocation": {"uri": f.file.replace("\\", "/")},
                                                 "region": {"startLine": max(1, f.line)}}}],
             "partialFingerprints": {"aisec/v1": f.fingerprint},

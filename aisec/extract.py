@@ -34,12 +34,17 @@ def _files(root: pathlib.Path, exts, include_tests: bool):
             yield p
 
 
+_MAX_SRC = 400_000  # cap on source retained per module for reachability analysis
+
+
 def _py_tools(path: pathlib.Path) -> list[dict]:
     try:
-        tree = ast.parse(path.read_text(errors="ignore"))
-    except Exception:
+        text = path.read_text(errors="ignore")
+        tree = ast.parse(text)
+    except Exception:  # SyntaxError, RecursionError, ValueError (null bytes)
         return []
     out = []
+    capped = text[:_MAX_SRC]  # one shared copy per module, not one per tool
     for fn in ast.walk(tree):
         if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
@@ -81,7 +86,8 @@ def _py_tools(path: pathlib.Path) -> list[dict]:
             elif re.search(r"\b(dict|Dict)\b", ann) or (ann and not re.search(r"\bstr\b", ann)):
                 s = {"type": "object"}
             props[a.arg] = s
-        out.append(dict(name=name, description=desc, input_schema={"type": "object", "properties": props}, line=fn.lineno))
+        out.append(dict(name=name, description=desc, input_schema={"type": "object", "properties": props}, line=fn.lineno,
+                        lang="python", module_src=capped, handler=fn.name))
     return out
 
 
@@ -147,7 +153,35 @@ def _ts_tools(path: pathlib.Path, consts: dict) -> list[dict]:
             continue
         props = _zod_props(win)
         props.update({k: v for k, v in _json_props(win).items() if k not in props})
-        out.append(dict(name=name, description=desc, input_schema={"type": "object", "properties": props}, line=t.count("\n", 0, m.start()) + 1))
+        out.append(dict(name=name, description=desc, input_schema={"type": "object", "properties": props}, line=t.count("\n", 0, m.start()) + 1,
+                        lang="js", body=win, body_kind="callback", module_src=t[:_MAX_SRC]))
+    out += _generic_tools(t, lambda pos: t.count("\n", 0, pos) + 1)
+    return out
+
+
+def _generic_tools(t: str, path_line_of) -> list[dict]:
+    """Object-literal registrations: {name: "x", description: "...", inputSchema: {...}} (array-of-tools servers)."""
+    out = []
+    for dm in re.finditer(r"\bdescription\s*:\s*" + _STR, t):
+        around = t[max(0, dm.start() - 400): dm.start()]
+        after = t[dm.end(): dm.end() + 1800]
+        nm = list(re.finditer(r"\bname\s*:\s*" + _STR, around))
+        nm2 = re.match(r"\s*,?\s*(?:\w+\s*:[^\n]*\n\s*)?name\s*:\s*" + _STR, after)
+        if nm:
+            name = _lit(nm[-1])
+        elif nm2:
+            name = _lit(nm2)
+        else:
+            continue
+        ctx = t[dm.start() - 200: dm.end() + 1500] if nm else after[:1500]
+        if not re.search(r"\b(inputSchema|input_schema|schema|parameters)\s*:", ctx):
+            continue
+        if not re.fullmatch(r"[A-Za-z0-9_.:/-]{2,80}", name):
+            continue
+        props = _zod_props(after)
+        props.update({k: v for k, v in _json_props(after).items() if k not in props})
+        out.append(dict(name=name, description=_lit(dm), input_schema={"type": "object", "properties": props},
+                        line=path_line_of(dm.start()), lang="js", body=after, body_kind="schema", module_src=t[:_MAX_SRC]))
     return out
 
 

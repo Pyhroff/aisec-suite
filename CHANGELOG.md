@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0
+- **Reachability** (`--reach off|annotate|strict`): Python AST taint and JS/TS handler analysis mark scope findings as sink reached / guarded / absent. Zero wrong refutations on 120 labelled findings.
+- **Structural tool-poisoning detector** (`--structural/--no-structural`, on by default): decodes hidden and encoded text, scores model-directed instructions in descriptions and parameter metadata. Held-out recall 48.1% at 0.03% false-positive rate on 3,974 real descriptions; see `docs/STUDY.md` for method and limits.
+- Benchmarks (`benchmarks/`) with seen/held-out registers and calibration/test negatives.
+
 ## 0.2.0
 - **Security:** the GitHub Action no longer interpolates inputs into shell script text (script-injection sink); inputs go through env vars and are quoted.
 - **Reliability:** a crashing scanner is reported as a warning (and exit code 2 when `--fail-on` is set) instead of a traceback that looked like "findings exist" (exit 1).

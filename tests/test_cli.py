@@ -14,6 +14,7 @@ VULN = textwrap.dedent('''
     @mcp.tool()
     def read_file(path: str) -> str:
         """Read a file."""
+        return open(path).read()
 ''')
 
 

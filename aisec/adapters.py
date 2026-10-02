@@ -6,6 +6,7 @@ import json
 import os
 import pathlib
 
+from aisec import reach
 from aisec.extract import extract_tools
 from aisec.model import Finding
 
@@ -32,7 +33,7 @@ def _walk(root: pathlib.Path):
                 yield p
 
 
-def scan_mcp_source(root: pathlib.Path, include_tests: bool = False, warnings: list[str] | None = None) -> tuple[list[Finding], int]:
+def scan_mcp_source(root: pathlib.Path, include_tests: bool = False, warnings: list[str] | None = None, reach_mode: str = "annotate", structural: bool = True) -> tuple[list[Finding], int]:
     """Statically extract tools from source, run mcpaudit's static checks. Returns (findings, tools_found)."""
     try:
         from mcpaudit.checks.description_scan import scan_descriptions
@@ -50,7 +51,14 @@ def scan_mcp_source(root: pathlib.Path, include_tests: bool = False, warnings: l
         by_name = {t["name"]: t for t in part}
         for f in scan_descriptions(manifest) + check_scope(manifest):
             src = by_name.get(f.tool, {})
-            findings.append(Finding("mcpaudit", f"{f.check}: {f.title}", f.severity.value, f.detail, src.get("file", "."), src.get("line", 1)))
+            sev, note = f.severity.value, ""
+            if reach_mode != "off" and f.check == "permission_scope":
+                r = reach.assess(src)
+                sev, note = reach.adjust_severity(sev, r, reach_mode == "strict"), r.note()
+            findings.append(Finding("mcpaudit", f"{f.check}: {f.title}", sev, f.detail, src.get("file", "."), src.get("line", 1), note))
+    if structural:
+        from aisec import poison
+        findings += poison.findings_for(tools)
     return findings, len(tools)
 
 
