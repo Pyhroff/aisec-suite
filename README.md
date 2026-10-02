@@ -53,3 +53,7 @@ Inputs: `path`, `fail-on`, `rag-dir`, `baseline`, `install`, `upload-sarif`. Nee
 
 ## Development
 `pip install -e ".[dev]" && pytest -q` (adapter tests use in-memory fake scanners and always run; a few end-to-end tests skip unless the real scanners are installed).
+
+## Evidence
+
+Precision, recall, reachability and tool-poisoning benchmark results, with their limits, are in [docs/STUDY.md](docs/STUDY.md). `aisec scan --no-structural` disables the poisoning heuristic; `--reach strict` makes HIGH mean a sink was reached.

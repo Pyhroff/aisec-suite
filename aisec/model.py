@@ -14,6 +14,7 @@ class Finding:
     message: str
     file: str         # path relative to the scan root
     line: int = 1
+    evidence: str = ""   # why severity was adjusted (reachability); not part of the fingerprint
 
     @property
     def fingerprint(self) -> str:

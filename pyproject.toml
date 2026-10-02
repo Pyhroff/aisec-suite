@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aisec-suite"
-version = "0.2.0"
+version = "0.3.0"
 description = "One command that runs mcpaudit, memsentry and ragsentry on a repo and emits SARIF for GitHub code scanning."
 readme = "README.md"
 license = { text = "MIT" }

@@ -32,10 +32,14 @@ def scan(
     json_out: Optional[pathlib.Path] = typer.Option(None, "--json", help="Write findings as JSON here."),
     fail_on: Optional[str] = typer.Option(None, "--fail-on", help="Exit 1 if any finding is at or above: low|medium|high|critical."),
     include_tests: bool = typer.Option(False, "--include-tests", help="Also extract tools from tests/examples/fixtures."),
+    reach: str = typer.Option("annotate", "--reach", help="Sink-aware reachability: off | annotate (default; only lowers refuted findings) | strict (also caps unproven findings at medium, so HIGH means a sink was reached)."),
+    structural: bool = typer.Option(True, "--structural/--no-structural", help="Structural tool-poisoning detector (decodes hidden/encoded text, scores model-directed instructions in descriptions and parameter metadata)."),
     baseline: Optional[pathlib.Path] = typer.Option(None, "--baseline", help="JSON file of accepted findings; they are hidden and never fail the run."),
     write_baseline: Optional[pathlib.Path] = typer.Option(None, "--write-baseline", help="Write current findings as a baseline (accept everything seen today)."),
     summary: Optional[pathlib.Path] = typer.Option(None, "--summary", help="Write a Markdown summary here (defaults to $GITHUB_STEP_SUMMARY when set)."),
 ) -> None:
+    if reach not in ("off", "annotate", "strict"):
+        raise typer.BadParameter("--reach must be off, annotate or strict")
     if fail_on and fail_on not in SEVERITY_ORDER:
         raise typer.BadParameter("must be one of low|medium|high|critical")
     root = path.resolve()
@@ -51,7 +55,7 @@ def scan(
             warnings.append(f"{label} crashed ({type(e).__name__}: {e}); its results are missing")
             return default
 
-    findings, n_tools = guarded("mcpaudit (source)", scan_mcp_source, ([], 0), root, include_tests, warnings)
+    findings, n_tools = guarded("mcpaudit (source)", scan_mcp_source, ([], 0), root, include_tests, warnings, reach, structural)
     findings = list(findings)
     findings += guarded("mcpaudit (manifests)", scan_manifest_files, [], root, warnings)
     findings += guarded("memsentry", scan_context_files, [], root, warnings)
