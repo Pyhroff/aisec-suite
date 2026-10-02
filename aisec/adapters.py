@@ -3,6 +3,7 @@ scanner is reported and skipped rather than crashing the run."""
 from __future__ import annotations
 
 import json
+import os
 import pathlib
 
 from aisec.extract import extract_tools
@@ -18,6 +19,17 @@ def _rel(p: pathlib.Path, root: pathlib.Path) -> str:
         return str(p.relative_to(root))
     except ValueError:
         return str(p)
+
+
+def _walk(root: pathlib.Path):
+    """Yield regular files under root, pruning vendored dirs *before* descending and never following symlinks
+    (a repo under scan is untrusted input: a symlink must not make us read files outside it)."""
+    for dirpath, dirs, files in os.walk(root, followlinks=False):
+        dirs[:] = [d for d in dirs if d not in _SKIP]
+        for name in files:
+            p = pathlib.Path(dirpath, name)
+            if not p.is_symlink():
+                yield p
 
 
 def scan_mcp_source(root: pathlib.Path, include_tests: bool = False, warnings: list[str] | None = None) -> tuple[list[Finding], int]:
@@ -51,11 +63,11 @@ def scan_manifest_files(root: pathlib.Path, warnings: list[str] | None = None) -
     except ImportError:
         return []
     out: list[Finding] = []
-    for p in root.rglob("*.json"):
-        if set(p.parts) & _SKIP or p.stat().st_size > 5_000_000:
+    for p in _walk(root):
+        if p.suffix != ".json" or p.stat().st_size > 5_000_000:
             continue
         try:
-            d = json.loads(p.read_text())
+            d = json.loads(p.read_text(encoding="utf-8", errors="replace"))
             if not (isinstance(d, dict) and "server_name" in d and isinstance(d.get("tools"), list)):
                 continue
             m = ServerManifest.from_dict(d)
@@ -75,9 +87,7 @@ def scan_context_files(root: pathlib.Path, warnings: list[str] | None = None) ->
             warnings.append("memsentry not installed: skipped agent-context file checks")
         return []
     out: list[Finding] = []
-    for p in root.rglob("*"):
-        if not p.is_file() or set(p.parts) & _SKIP:
-            continue
+    for p in _walk(root):
         if p.name in CONTEXT_NAMES or (p.parent.name == "rules" and p.parent.parent.name == ".cursor"):
             for f in scan_file(MemoryFile.load(p)):
                 out.append(Finding("memsentry", f"{f.check}: {f.title}", f.severity.value, f.detail, _rel(p, root), f.line))

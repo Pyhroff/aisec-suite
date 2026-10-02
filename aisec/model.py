@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass, asdict
 
 SEVERITY_ORDER = {"low": 0, "medium": 1, "high": 2, "critical": 3}
@@ -14,8 +15,14 @@ class Finding:
     file: str         # path relative to the scan root
     line: int = 1
 
+    @property
+    def fingerprint(self) -> str:
+        """Stable across line shifts, so baselines survive unrelated edits."""
+        raw = "\x1f".join((self.scanner, self.rule, self.file.replace("\\", "/"), self.message))
+        return hashlib.sha256(raw.encode()).hexdigest()[:32]
+
     def to_dict(self) -> dict:
-        return asdict(self)
+        return {**asdict(self), "fingerprint": self.fingerprint}
 
 
 def at_least(severity: str, threshold: str) -> bool:

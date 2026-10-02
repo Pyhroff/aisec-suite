@@ -10,9 +10,17 @@ inputs:
   rag-dir:
     description: Optional directory of RAG source documents (ragsentry)
     default: ""
-  install:
-    description: Command that installs the scanners (mcpaudit, memsentry, ragsentry). Required until they are published to a package index.
+  baseline:
+    description: Optional path to a baseline JSON (from `aisec scan --write-baseline`). Accepted findings are hidden and never fail the run.
     default: ""
+  install:
+    description: Optional extra install command (e.g. to pin or add scanners). Not needed normally; scanners come from PyPI. Runs in the caller's own workflow, so only pass trusted values.
+    default: ""
+  upload-sarif:
+    description: "Upload results to GitHub code scanning (needs security-events: write). Set to false to skip."
+    default: "true"
+# Inputs are passed through env vars and quoted, never interpolated into the script text:
+# a `${{ inputs.x }}` inside `run:` is a classic script-injection sink, which a security tool must not have.
 runs:
   using: composite
   steps:
@@ -21,18 +29,27 @@ runs:
         python-version: "3.11"
     - name: Install aisec-suite and scanners
       shell: bash
+      env:
+        ACTION_PATH: ${{ github.action_path }}
+        INSTALL_CMD: ${{ inputs.install }}
       run: |
-        pip install "${{ github.action_path }}"
-        if [ -n "${{ inputs.install }}" ]; then ${{ inputs.install }}; fi
+        pip install "$ACTION_PATH[scanners]"
+        if [ -n "$INSTALL_CMD" ]; then bash -c "$INSTALL_CMD"; fi
     - name: Scan
       shell: bash
+      env:
+        IN_PATH: ${{ inputs.path }}
+        IN_FAIL_ON: ${{ inputs.fail-on }}
+        IN_RAG: ${{ inputs.rag-dir }}
+        IN_BASELINE: ${{ inputs.baseline }}
       run: |
-        args=(scan "${{ inputs.path }}" --sarif aisec.sarif)
-        if [ -n "${{ inputs.fail-on }}" ]; then args+=(--fail-on "${{ inputs.fail-on }}"); fi
-        if [ -n "${{ inputs.rag-dir }}" ]; then args+=(--rag "${{ inputs.rag-dir }}"); fi
+        args=(scan "$IN_PATH" --sarif aisec.sarif)
+        if [ -n "$IN_FAIL_ON" ]; then args+=(--fail-on "$IN_FAIL_ON"); fi
+        if [ -n "$IN_RAG" ]; then args+=(--rag "$IN_RAG"); fi
+        if [ -n "$IN_BASELINE" ]; then args+=(--baseline "$IN_BASELINE"); fi
         aisec "${args[@]}"
     - name: Upload SARIF
-      if: always() && hashFiles('aisec.sarif') != ''
+      if: always() && inputs.upload-sarif != 'false' && hashFiles('aisec.sarif') != ''
       uses: github/codeql-action/upload-sarif@v3
       with:
         sarif_file: aisec.sarif
