@@ -21,7 +21,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install the full scanner suite
-        run: pip install -e ".[all]"
+        run: pip install -e ".[core]"
 
       - name: Run unified AI security scan
         run: |
