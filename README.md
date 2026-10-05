@@ -135,7 +135,17 @@ repo ──walk (skip vendored dirs, never follow symlinks)
 
 ## Unified suite modules
 
-| Module | Specialist project | Purpose |\n|---|---|---|\n| mcp | [mcpaudit](https://github.com/Pyhroff/mcpaudit) | MCP tool poisoning and privilege surface |\n| memory | [memsentry](https://github.com/Pyhroff/memsentry) | Persistent agent-memory/context poisoning |\n| rag | [ragsentry](https://github.com/Pyhroff/ragsentry) | RAG poisoning and retrieval manipulation |\n| training | [trainsentry](https://github.com/Pyhroff/trainsentry) | Fine-tuning dataset poisoning |\n| supply-chain | [agent-install-guardrail](https://github.com/Pyhroff/agent-install-guardrail) | Package/install supply-chain risk |\n| behavior | [loopcheck](https://github.com/Pyhroff/loopcheck) | Agent-loop efficiency and regression analysis |\n| adversarial | [adversagen](https://github.com/Pyhroff/adversagen) | Adaptive red-team/evasion experiments |\n| worm | [wormsentry](https://github.com/Pyhroff/wormsentry) | Self-propagating package behavior |\n\nThe umbrella package provides the product-level module registry and common CLI. Specialist repositories remain independently versioned so their standalone users and research histories remain intact.\n\n### Module discovery\n\n```bash\naisec modules\n```\n\nUse `pip install "aisec-suite[all]"` to install the full specialist set. Optional modules that are not installed are never silently treated as clean; the suite reports their availability explicitly.\n\n## Development
+| Module | Specialist project | Purpose |
+|---|---|---|
+| mcp | [mcpaudit](https://github.com/Pyhroff/mcpaudit) | MCP tool poisoning and privilege surface |
+| memory | [memsentry](https://github.com/Pyhroff/memsentry) | Persistent agent-memory/context poisoning |
+| rag | [ragsentry](https://github.com/Pyhroff/ragsentry) | RAG poisoning and retrieval manipulation |
+| training | [trainsentry](https://github.com/Pyhroff/trainsentry) | Fine-tuning dataset poisoning |
+| supply-chain | [agent-install-guardrail](https://github.com/Pyhroff/agent-install-guardrail) | Package/install supply-chain risk |
+| behavior | [loopcheck](https://github.com/Pyhroff/loopcheck) | Agent-loop efficiency and regression analysis |
+| adversarial | [adversagen](https://github.com/Pyhroff/adversagen) | Adaptive red-team/evasion experiments |
+| worm | [wormsentry](https://github.com/Pyhroff/wormsentry) | Self-propagating package behavior |
+\nThe umbrella package provides the product-level module registry and common CLI. Specialist repositories remain independently versioned so their standalone users and research histories remain intact.\n\n### Module discovery\n\n```bash\naisec modules\n```\n\nUse `pip install "aisec-suite[all]"` to install the full specialist set. Optional modules that are not installed are never silently treated as clean; the suite reports their availability explicitly.\n\n## Development
 
 ```bash
 pip install -e ".[dev]"
