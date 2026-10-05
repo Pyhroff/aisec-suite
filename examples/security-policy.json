@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "fail_on": "high",
+  "exclude": [
+    {
+      "scanner": "mcpaudit",
+      "rule": "example-*",
+      "file": "tests/**"
+    }
+  ]
+}
