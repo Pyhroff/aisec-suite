@@ -45,7 +45,8 @@ def _emit(findings: list, *, json_out: Optional[pathlib.Path], sarif: Optional[p
 @app.command()
 def scan(
     path: pathlib.Path = typer.Argument(..., exists=True, file_okay=False, help="Repository root to scan."),
-    only: Optional[str] = typer.Option(None, "--only", help="Comma-separated inline modules: mcp,memory,rag."),
+    only: Optional[str] = typer.Option(None, "--only", help="Comma-separated modules: mcp,memory,rag,training,behavior,supply-chain,worm."),
+    all_modules: bool = typer.Option(False, "--all", help="Run every native suite module against the repository where applicable."),
     rag: Optional[pathlib.Path] = typer.Option(None, "--rag", help="Directory of RAG source documents."),
     sarif: Optional[pathlib.Path] = typer.Option(None, "--sarif", help="Write SARIF 2.1.0 here."),
     json_out: Optional[pathlib.Path] = typer.Option(None, "--json", help="Write normalized findings as JSON."),
@@ -78,11 +79,17 @@ def scan(
     selected = {"mcp", "memory"}
     if rag:
         selected.add("rag")
+    if all_modules and only:
+        raise typer.BadParameter("--all cannot be combined with --only")
+    if all_modules and rag is None:
+        rag = root
+    if all_modules:
+        selected = {"mcp", "memory", "rag", "training", "behavior", "supply-chain", "worm"}
     if only:
         requested = {x.strip() for x in only.split(",") if x.strip()}
-        unknown = requested - {"mcp", "memory", "rag"}
+        unknown = requested - {"mcp", "memory", "rag", "training", "behavior", "supply-chain", "worm"}
         if unknown:
-            raise typer.BadParameter("unsupported inline modules: " + ", ".join(sorted(unknown)) + "; use dedicated commands for other modules")
+            raise typer.BadParameter("unsupported modules: " + ", ".join(sorted(unknown)))
         selected = requested
     if not selected:
         raise typer.BadParameter("no runnable static modules selected")
@@ -95,6 +102,24 @@ def scan(
         findings += guarded("memsentry", scan_context_files, [], root, warnings)
     if "rag" in selected and rag:
         findings += guarded("ragsentry", scan_rag_dir, [], rag.resolve(), root, warnings)
+    if "training" in selected:
+        dataset = root / "training_data.jsonl"
+        if dataset.is_file():
+            findings += guarded("trainsentry", scan_training_dataset, [], dataset, warnings)
+        else:
+            warnings.append("training selected but training_data.jsonl was not found; skipped")
+    if "behavior" in selected:
+        trace = root / "trace.json"
+        if trace.is_file():
+            findings += guarded("loopcheck", scan_agent_trace, [], trace, warnings)
+        else:
+            warnings.append("behavior selected but trace.json was not found; skipped")
+    if "supply-chain" in selected:
+        manifest = root / "pyproject.toml"
+        target = str(manifest if manifest.is_file() else root)
+        findings += guarded("agent-install-guardrail", scan_supply_chain, [], target, warnings)
+    if "worm" in selected:
+        findings += guarded("wormsentry", scan_worm_tree, [], root, warnings)
     _finish(path, findings, n_tools, warnings, crashed, fail_on, baseline, write_baseline, sarif, json_out, summary)
 
 def _finish(path, findings, n_tools, warnings, crashed, fail_on, baseline, write_baseline, sarif, json_out, summary):
