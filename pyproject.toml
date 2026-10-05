@@ -15,9 +15,9 @@ classifiers = ["Development Status :: 4 - Beta","Intended Audience :: Developers
 dependencies = ["typer>=0.12"]
 
 [project.optional-dependencies]
-scanners = ["pyhroff-mcpaudit>=0.7","memsentry>=1.2","pyhroff-ragsentry>=1.1","trainsentry>=1.1","loopcheck>=0.2","adversagen>=0.1","wormsentry>=1.0"]
-supply-chain = ["agent-install-guardrail>=0.8"]
-all = ["pyhroff-mcpaudit>=0.7","memsentry>=1.2","pyhroff-ragsentry>=1.1","trainsentry>=1.1","loopcheck>=0.2","adversagen>=0.1","wormsentry>=1.0","agent-install-guardrail>=0.8"]
+core = ["pyhroff-mcpaudit>=0.7","memsentry>=1.2","pyhroff-ragsentry>=1.1"]
+all = ["pyhroff-mcpaudit>=0.7","memsentry>=1.2","pyhroff-ragsentry>=1.1"]
+future = ["agent-install-guardrail>=0.8","trainsentry>=1.1","loopcheck>=0.2","adversagen>=0.1","wormsentry>=1.0"]
 dev = ["pytest>=8","ruff>=0.5"]
 
 [project.urls]
