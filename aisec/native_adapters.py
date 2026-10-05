@@ -13,6 +13,7 @@ from typing import Any
 
 from aisec.model import Finding
 
+
 def _run_json(
     scanner: str,
     args: list[str],
@@ -44,6 +45,7 @@ def _run_json(
     except json.JSONDecodeError:
         return proc.returncode, None, (proc.stderr or proc.stdout).strip()
 
+
 def scan_training_dataset(dataset: pathlib.Path, warnings: list[str] | None = None) -> list[Finding]:
     """Run trainsentry's JSON output through its installed CLI."""
     if not dataset.is_file():
@@ -67,6 +69,7 @@ def scan_training_dataset(dataset: pathlib.Path, warnings: list[str] | None = No
         return []
     return _findings_from_payload("trainsentry", payload, dataset.parent)
 
+
 def scan_agent_trace(trace: pathlib.Path, warnings: list[str] | None = None) -> list[Finding]:
     """Run loopcheck analyze in JSON mode against a trace."""
     if not trace.is_file():
@@ -89,6 +92,7 @@ def scan_agent_trace(trace: pathlib.Path, warnings: list[str] | None = None) -> 
             warnings.append(f"loopcheck returned no JSON (exit {rc}): {err}")
         return []
     return _findings_from_payload("loopcheck", payload, trace.parent)
+
 
 def scan_supply_chain(target: str, warnings: list[str] | None = None) -> list[Finding]:
     """Run the guardrail inspection CLI and normalize its JSON finding list."""
@@ -125,6 +129,7 @@ def scan_supply_chain(target: str, warnings: list[str] | None = None) -> list[Fi
         return []
     return _findings_from_payload("agent-install-guardrail", payload, pathlib.Path.cwd())
 
+
 def scan_worm_tree(root: pathlib.Path, warnings: list[str] | None = None) -> list[Finding]:
     """Run wormsentry's library checks directly."""
     try:
@@ -146,6 +151,7 @@ def scan_worm_tree(root: pathlib.Path, warnings: list[str] | None = None) -> lis
         out.append(Finding("wormsentry", f"{finding.check}: {finding.title}", finding.severity.value,
                            finding.detail, finding.file, finding.line))
     return out
+
 
 def _findings_from_payload(scanner: str, payload: Any, root: pathlib.Path) -> list[Finding]:
     """Best-effort normalization for common specialist JSON report shapes."""
