@@ -44,6 +44,9 @@ pip install "aisec-suite[all]"
 aisec scan .
 aisec scan . --rag ./docs
 aisec scan . --sarif aisec.sarif --json findings.json --fail-on high
+# Run every native module that has a compatible target in the repository
+# (training_data.jsonl, trace.json, pyproject.toml, etc.)
+aisec scan . --all --sarif aisec.sarif
 ```
 
 ### Dedicated module commands
@@ -65,7 +68,7 @@ aisec modules
 
 Integrated scanners are normalized into a shared `Finding` model so downstream automation can consume results consistently.
 
-Supported outputs include terminal reports, normalized JSON, SARIF 2.1.0, Markdown summaries, severity gates, and reusable baselines.
+Supported outputs include terminal reports, normalized JSON, SARIF 2.1.0, Markdown summaries, severity gates, and reusable baselines. Every normalized finding carries a stable fingerprint plus confidence, target, evidence, and remediation metadata where available.
 
 ```bash
 aisec scan . --write-baseline .aisec-baseline.json
@@ -104,6 +107,10 @@ aisec scan . --baseline .aisec-baseline.json --fail-on high
 Native umbrella adapters now cover **MCP, memory, RAG, training data, supply-chain inspection, agent-loop behavior, and package-worm detection**.
 
 The adversarial research runner remains intentionally separate because it is an experiment engine rather than a static artifact scanner.
+
+## Detection quality
+
+The suite exposes reusable precision, recall, F1, and false-positive-rate calculations for controlled regression corpora. These metrics are intended for reproducible benchmark cases—not claims of universal real-world detection rates.
 
 ## Research
 
