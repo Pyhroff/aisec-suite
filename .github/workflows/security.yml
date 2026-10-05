@@ -28,7 +28,7 @@ jobs:
           aisec scan . --all --sarif aisec.sarif --json aisec.json --fail-on high
 
       - name: Upload SARIF
-        if: always()
+        if: ${{ always() && hashFiles('aisec.sarif') != '' }}
         uses: github/codeql-action/upload-sarif@87ef0dc97def48aa960fbf026a2563ee9dbdb470 # v3
         with:
           sarif_file: aisec.sarif
