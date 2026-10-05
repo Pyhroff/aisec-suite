@@ -12,7 +12,7 @@ authors = [{ name = "Pyhroff" }]
 requires-python = ">=3.10"
 keywords = ["AI security", "MCP", "LLM agents", "prompt injection", "RAG", "training data poisoning", "supply chain", "SARIF"]
 classifiers = ["Development Status :: 4 - Beta","Intended Audience :: Developers","License :: OSI Approved :: MIT License","Programming Language :: Python :: 3","Programming Language :: Python :: 3.10","Programming Language :: Python :: 3.11","Programming Language :: Python :: 3.12","Topic :: Security"]
-dependencies = ["typer>=0.12"]
+dependencies = ["typer>=0.27.2"]
 
 [project.optional-dependencies]
 core = ["pyhroff-mcpaudit>=0.7","memsentry>=1.2","pyhroff-ragsentry>=1.1"]
