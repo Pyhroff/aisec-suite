@@ -143,7 +143,7 @@ def _finish(path, findings, n_tools, warnings, crashed, fail_on, baseline, write
     summary_path = summary or (pathlib.Path(os.environ["GITHUB_STEP_SUMMARY"]) if os.environ.get("GITHUB_STEP_SUMMARY") else None)
     if summary_path:
         with summary_path.open("a", encoding="utf-8") as fh:
-            fh.write(to_markdown(findings, n_tools, warnings, suppressed))
+            fh.write(to_markdown(findings, n_tools, warnings, suppressed, lifecycle))
     for w in warnings:
         typer.echo(f"warning: {w}", err=True)
     by_sev = collections.Counter(f.severity for f in findings)
