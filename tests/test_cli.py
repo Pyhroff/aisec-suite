@@ -57,3 +57,22 @@ def test_all_and_only_are_mutually_exclusive(tmp_path):
     r = runner.invoke(app, ["scan", str(tmp_path), "--all", "--only", "mcp"])
     assert r.exit_code != 0
     assert "--all cannot be combined with --only" in r.output
+
+
+def test_policy_cli_validates_file(tmp_path):
+    policy = tmp_path / "policy.json"
+    policy.write_text(json.dumps({"version": 1, "fail_on": "high"}))
+    r = runner.invoke(app, ["policy", "validate", str(policy)])
+    assert r.exit_code == 0, r.output
+    assert '"version": 1' in r.output
+
+
+def test_policy_profile_show(tmp_path):
+    r = runner.invoke(app, ["policy", "show", "balanced"])
+    assert r.exit_code == 0, r.output
+    assert '"fail_on": "high"' in r.output
+
+
+def test_unknown_policy_profile_rejected(tmp_path):
+    r = runner.invoke(app, ["scan", str(tmp_path), "--policy-profile", "unknown"])
+    assert r.exit_code != 0
