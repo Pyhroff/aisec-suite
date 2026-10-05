@@ -22,6 +22,10 @@ inputs:
     description: "Optional dependency set to install from aisec-suite."
     required: false
     default: "all"
+  policy-profile:
+    description: "Built-in policy profile: strict, balanced, or dev."
+    required: false
+    default: ""
 outputs:
   findings:
     description: "Number of findings emitted by the scan."
@@ -47,9 +51,11 @@ runs:
         AISEC_FAIL_ON: ${{ inputs.fail-on }}
         AISEC_SARIF: ${{ inputs.sarif }}
         AISEC_JSON: ${{ inputs.json }}
+        AISEC_POLICY_PROFILE: ${{ inputs.policy-profile }}
       run: |
         set +e
         args=(scan "$AISEC_PATH" --all --fail-on "$AISEC_FAIL_ON")
+        if [ -n "$AISEC_POLICY_PROFILE" ]; then args+=(--policy-profile "$AISEC_POLICY_PROFILE"); fi
         if [ -n "$AISEC_SARIF" ]; then args+=(--sarif "$AISEC_SARIF"); fi
         if [ -n "$AISEC_JSON" ]; then args+=(--json "$AISEC_JSON"); fi
         aisec "${args[@]}"
