@@ -170,6 +170,18 @@ The suite exposes reusable precision, recall, F1, and false-positive-rate calcul
 
 Benchmark methodology and evaluation results live in [`docs/STUDY.md`](docs/STUDY.md). Treat measured results as evidence for the documented corpus and experimental design, not as universal guarantees.
 
+## Security reporting and triage
+
+When `GITHUB_STEP_SUMMARY` is available, every scan writes a concise security report to the GitHub Actions job summary. The report includes severity counts, baseline lifecycle state, warnings, and a prioritized triage queue.
+
+Priority mapping is deterministic: **P0 = critical**, **P1 = high**, **P2 = medium**, **P3 = low**. Findings with scanner-provided remediation guidance display it directly in the queue.
+
+```bash
+aisec scan . --all --summary scan-summary.md
+```
+
+JSON and SARIF remain the machine-readable integrations; the Markdown report is designed for human review and pull-request workflows.
+
 ## Development
 
 ```bash
