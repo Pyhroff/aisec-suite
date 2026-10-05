@@ -61,30 +61,16 @@ aisec worm ./package --json worm-findings.json
 aisec modules
 ```
 
-The module registry distinguishes native umbrella integrations from specialist-only research tooling.
-
 ## Common reporting model
 
-Integrated scanners are normalized into a shared `Finding` model so automation does not need a different result shape for every scanner.
+Integrated scanners are normalized into a shared `Finding` model so downstream automation can consume results consistently.
 
-Supported outputs include terminal reports, normalized JSON, SARIF 2.1.0, Markdown job summaries, severity gates, and reusable baselines.
+Supported outputs include terminal reports, normalized JSON, SARIF 2.1.0, Markdown summaries, severity gates, and reusable baselines.
 
 ```bash
 aisec scan . --write-baseline .aisec-baseline.json
 aisec scan . --baseline .aisec-baseline.json --fail-on high
 ```
-
-## Design principles
-
-**Static-first.** Repository scanning reads source and metadata rather than launching the target application or MCP server.
-
-**Fail closed.** A scanner crash is distinguishable from a clean result.
-
-**Composable.** Specialist repositories keep their own release cadence, tests, and research history.
-
-**CI-native.** Results can feed pull-request checks and SARIF/code-scanning workflows.
-
-**Honest by default.** A finding is a heuristic signal for review, not proof of maliciousness.
 
 ## Architecture
 
@@ -107,17 +93,11 @@ aisec scan . --baseline .aisec-baseline.json --fail-on high
                        loopcheck                 wormsentry
 ```
 
-`adversagen` remains the attack-side research layer: it searches for evasions and regression cases rather than acting as another static scanner.
+`adversagen` remains the attack-side research layer rather than another static scanner.
 
-## CI
+## Design principles
 
-Use least-privilege permissions for SARIF/code-scanning workflows:
-
-```yaml
-permissions:
-  contents: read
-  security-events: write
-```
+**Static-first** · **Fail closed** · **Composable** · **CI-native** · **Honest about uncertainty**
 
 ## Project status
 
@@ -127,7 +107,7 @@ The adversarial research runner remains intentionally separate because it is an 
 
 ## Research
 
-Benchmark methodology and evaluation results live in [`docs/STUDY.md`](docs/STUDY.md). Treat measured results as evidence for the documented corpus and experiment design, not as universal guarantees.
+Benchmark methodology and evaluation results live in [`docs/STUDY.md`](docs/STUDY.md). Treat measured results as evidence for the documented corpus and experimental design, not as universal guarantees.
 
 ## Development
 
