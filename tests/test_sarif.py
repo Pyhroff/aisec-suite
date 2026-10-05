@@ -20,3 +20,13 @@ def test_sarif_has_ranking_and_fingerprints():
     assert run["tool"]["driver"]["rules"][0]["properties"]["security-severity"] == "8.0"
     assert run["results"][0]["partialFingerprints"]["aisec/v1"] == f.fingerprint
     assert Finding("mcpaudit", "permission_scope: X", "high", "m", "a.py", 99).fingerprint == f.fingerprint  # line-independent
+
+
+def test_enriched_finding_metadata_is_exported():
+    f = Finding("mcpaudit", "scope", "high", "msg", "a.py", 2, confidence=0.82, target="tool.read", remediation="Restrict the path scope")
+    d = f.to_dict()
+    assert d["confidence"] == 0.82
+    assert d["target"] == "tool.read"
+    assert d["remediation"] == "Restrict the path scope"
+    result = to_sarif([f])["runs"][0]["results"][0]
+    assert result["properties"]["confidence"] == 0.82
