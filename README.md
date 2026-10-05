@@ -64,6 +64,33 @@ aisec worm ./package --json worm-findings.json
 aisec modules
 ```
 
+## Reusable GitHub Action
+
+Use the bundled composite action to standardize the scanner in another workflow:
+
+```yaml
+permissions:
+  contents: read
+  security-events: write
+
+steps:
+  - uses: actions/checkout@v7
+  - uses: Pyhroff/aisec-suite/.github/actions/aisec-scan@v1
+    with:
+      fail-on: high
+      sarif: aisec.sarif
+      json: aisec.json
+  - uses: github/codeql-action/upload-sarif@v3
+    with:
+      sarif_file: aisec.sarif
+```
+
+For maximum reproducibility in production, pin the `aisec-suite` action reference to an immutable commit SHA rather than a moving tag.
+
+## Release pipeline
+
+Version tags (`vX.Y.Z`) build and validate both wheel and source distributions. The release workflow verifies that the tag matches the package version and publishes through PyPI trusted publishing (OIDC); no PyPI API token is stored in the repository.
+
 ## CI security gate
 
 Every push and pull request runs the full native scanner suite through `aisec scan . --all`. The security workflow gates on high/critical findings and uploads SARIF results to GitHub code scanning. GitHub Actions dependencies are pinned to immutable commit SHAs and checkout disables persisted credentials.
