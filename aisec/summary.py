@@ -15,8 +15,8 @@ def _cell(value: str) -> str:
 def to_markdown(findings: list[Finding], n_tools: int, warnings: list[str], suppressed: int = 0, lifecycle=None) -> str:
     by = collections.Counter(f.severity for f in findings)
     out = ["## 🛡️ aisec-suite security report\n",
-           f"**{len(findings)} active finding(s)** · 🟥 {by["critical"]} critical · 🟧 {by["high"]} high · "
-           f"🟨 {by["medium"]} medium · ⬜ {by["low"]} low · MCP tools extracted: {n_tools}"]
+           f"**{len(findings)} active finding(s)** · 🟥 {by['critical']} critical · 🟧 {by['high']} high · "
+           f"🟨 {by['medium']} medium · ⬜ {by['low']} low · MCP tools extracted: {n_tools}"]
     if suppressed:
         out.append(f"\n> ℹ️ {suppressed} finding(s) accepted by the baseline.")
     if lifecycle:
