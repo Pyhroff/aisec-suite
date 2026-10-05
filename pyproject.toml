@@ -18,7 +18,7 @@ dependencies = ["typer>=0.12"]
 core = ["pyhroff-mcpaudit>=0.7","memsentry>=1.2","pyhroff-ragsentry>=1.1"]
 all = ["pyhroff-mcpaudit>=0.7","memsentry>=1.2","pyhroff-ragsentry>=1.1","agent-install-guardrail>=0.8","trainsentry>=1.1","loopcheck>=0.8","wormsentry>=1.0"]
 future = ["adversagen>=0.1"]
-dev = ["pytest>=8","ruff>=0.5"]
+dev = ["pytest>=9.1.1","ruff>=0.5"]
 
 [project.urls]
 Homepage = "https://github.com/Pyhroff/aisec-suite"
