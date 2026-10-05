@@ -36,7 +36,7 @@ runs:
         ACTION_PATH: ${{ github.action_path }}
         INSTALL_CMD: ${{ inputs.install }}
       run: |
-        pip install "$ACTION_PATH[scanners]"
+        pip install "$ACTION_PATH[core]"
         if [ -n "$INSTALL_CMD" ]; then bash -c "$INSTALL_CMD"; fi
     - name: Scan
       shell: bash
