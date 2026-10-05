@@ -20,12 +20,12 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install the full scanner suite
+      - name: Install the core scanner suite
         run: pip install -e ".[core]"
 
       - name: Run unified AI security scan
         run: |
-          aisec scan . --all --sarif aisec.sarif --json aisec.json --fail-on high
+          aisec scan . --all --policy examples/security-policy.json --sarif aisec.sarif --json aisec.json
 
       - name: Upload SARIF
         if: ${{ always() && hashFiles('aisec.sarif') != '' }}
