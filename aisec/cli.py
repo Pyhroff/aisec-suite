@@ -12,7 +12,6 @@ from aisec import __version__
 from aisec.adapters import scan_context_files, scan_manifest_files, scan_mcp_source, scan_rag_dir
 from aisec.benchmark import load_metrics, run_range
 from aisec.lifecycle import classify, load_baseline
-from aisec.metrics import evaluate
 from aisec.model import SEVERITY_ORDER, at_least
 from aisec.modules import available_modules
 from aisec.native_adapters import (
