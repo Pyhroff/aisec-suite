@@ -13,23 +13,27 @@ class DetectionMetrics:
 
     @property
     def precision(self) -> float:
-        d = self.true_positive + self.false_positive
-        return self.true_positive / d if d else 0.0
+        denominator = self.true_positive + self.false_positive
+        return self.true_positive / denominator if denominator else 0.0
 
     @property
     def recall(self) -> float:
-        d = self.true_positive + self.false_negative
-        return self.true_positive / d if d else 0.0
+        denominator = self.true_positive + self.false_negative
+        return self.true_positive / denominator if denominator else 0.0
 
     @property
     def f1(self) -> float:
-        p, r = self.precision, self.recall
-        return 2 * p * r / (p + r) if p + r else 0.0
+        precision, recall = self.precision, self.recall
+        return (
+            2 * precision * recall / (precision + recall)
+            if precision + recall
+            else 0.0
+        )
 
     @property
     def false_positive_rate(self) -> float:
-        d = self.false_positive + self.true_negative
-        return self.false_positive / d if d else 0.0
+        denominator = self.false_positive + self.true_negative
+        return self.false_positive / denominator if denominator else 0.0
 
     def to_dict(self) -> dict[str, float | int]:
         return {
@@ -44,8 +48,12 @@ class DetectionMetrics:
         }
 
 
-def evaluate(expected_vulnerable: set[str], detected: set[str], expected_clean: set[str] | None = None) -> DetectionMetrics:
-    """Evaluate case IDs, keeping vulnerable and clean expectations explicit."""
+def evaluate(
+    expected_vulnerable: set[str],
+    detected: set[str],
+    expected_clean: set[str] | None = None,
+) -> DetectionMetrics:
+    """Evaluate case IDs with explicit vulnerable and clean expectations."""
     expected_clean = expected_clean or set()
     tp = len(expected_vulnerable & detected)
     fn = len(expected_vulnerable - detected)
