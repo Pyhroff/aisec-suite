@@ -12,6 +12,7 @@ from aisec import __version__
 from aisec.benchmark import load_metrics, run_range
 from aisec.adapters import scan_context_files, scan_manifest_files, scan_mcp_source, scan_rag_dir
 from aisec.model import SEVERITY_ORDER, at_least
+from aisec.lifecycle import classify, load_baseline
 from aisec.modules import available_modules
 from aisec.native_adapters import (
     scan_agent_trace,
@@ -128,14 +129,16 @@ def _finish(path, findings, n_tools, warnings, crashed, fail_on, baseline, write
     if write_baseline:
         write_baseline.write_text(json.dumps(sorted({f.fingerprint for f in findings}), indent=2), encoding="utf-8")
         typer.echo(f"baseline written: {len(findings)} findings accepted -> {write_baseline}")
+    lifecycle = None
     suppressed = 0
     if baseline:
         try:
-            accepted = set(json.loads(baseline.read_text(encoding="utf-8")))
+            accepted = load_baseline(baseline)
         except (OSError, ValueError) as e:
             raise typer.BadParameter(f"cannot read baseline: {e}")
-        kept = [f for f in findings if f.fingerprint not in accepted]
-        suppressed, findings = len(findings) - len(kept), kept
+        lifecycle = classify(findings, accepted)
+        suppressed = lifecycle.existing_count
+        findings = list(lifecycle.new)
     _emit(findings, json_out=json_out, sarif=sarif)
     summary_path = summary or (pathlib.Path(os.environ["GITHUB_STEP_SUMMARY"]) if os.environ.get("GITHUB_STEP_SUMMARY") else None)
     if summary_path:
@@ -147,6 +150,12 @@ def _finish(path, findings, n_tools, warnings, crashed, fail_on, baseline, write
     typer.echo(f"tools extracted: {n_tools} | findings: {len(findings)} (critical {by_sev['critical']}, high {by_sev['high']}, medium {by_sev['medium']}, low {by_sev['low']})")
     if suppressed:
         typer.echo(f"baseline-suppressed: {suppressed}")
+    if lifecycle:
+        typer.echo(
+            f"lifecycle: new={lifecycle.new_count} "
+            f"existing={lifecycle.existing_count} "
+            f"resolved={lifecycle.resolved_count}"
+        )
     for f in findings[:25]:
         typer.echo(f"  [{f.severity:8}] {f.file}:{f.line}  {f.scanner}  {f.rule}")
     if len(findings) > 25:
