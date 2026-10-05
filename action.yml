@@ -19,6 +19,9 @@ inputs:
   upload-sarif:
     description: "Upload results to GitHub code scanning (needs security-events: write). Set to false to skip."
     default: "true"
+  policy-profile:
+    description: "Optional built-in policy profile: strict, balanced, or dev."
+    default: ""
 # Inputs are passed through env vars and quoted, never interpolated into the script text:
 # a `${{ inputs.x }}` inside `run:` is a classic script-injection sink, which a security tool must not have.
 runs:
@@ -42,11 +45,13 @@ runs:
         IN_FAIL_ON: ${{ inputs.fail-on }}
         IN_RAG: ${{ inputs.rag-dir }}
         IN_BASELINE: ${{ inputs.baseline }}
+        IN_POLICY_PROFILE: ${{ inputs.policy-profile }}
       run: |
         args=(scan "$IN_PATH" --sarif aisec.sarif)
         if [ -n "$IN_FAIL_ON" ]; then args+=(--fail-on "$IN_FAIL_ON"); fi
         if [ -n "$IN_RAG" ]; then args+=(--rag "$IN_RAG"); fi
         if [ -n "$IN_BASELINE" ]; then args+=(--baseline "$IN_BASELINE"); fi
+        if [ -n "$IN_POLICY_PROFILE" ]; then args+=(--policy-profile "$IN_POLICY_PROFILE"); fi
         aisec "${args[@]}"
     - name: Upload SARIF
       if: always() && inputs.upload-sarif != 'false' && hashFiles('aisec.sarif') != ''
