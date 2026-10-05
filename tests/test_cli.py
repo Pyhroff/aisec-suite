@@ -76,3 +76,18 @@ def test_policy_profile_show(tmp_path):
 def test_unknown_policy_profile_rejected(tmp_path):
     r = runner.invoke(app, ["scan", str(tmp_path), "--policy-profile", "unknown"])
     assert r.exit_code != 0
+
+
+def test_policy_init_creates_profile(tmp_path):
+    path = tmp_path / "aisec-policy.json"
+    r = runner.invoke(app, ["policy", "init", str(path), "--profile", "strict"])
+    assert r.exit_code == 0, r.output
+    assert json.loads(path.read_text())["fail_on"] == "low"
+
+
+def test_policy_init_refuses_overwrite(tmp_path):
+    path = tmp_path / "aisec-policy.json"
+    path.write_text("{}")
+    r = runner.invoke(app, ["policy", "init", str(path)])
+    assert r.exit_code != 0
+    assert "refusing to overwrite" in r.output

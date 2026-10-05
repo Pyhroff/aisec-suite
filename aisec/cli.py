@@ -54,6 +54,24 @@ def policy_validate(path: pathlib.Path = typer.Argument(..., exists=True, dir_ok
     typer.echo(json.dumps(validate_policy(policy), indent=2, sort_keys=True))
 
 
+@policy_app.command("init")
+def policy_init(
+    path: pathlib.Path = typer.Argument(pathlib.Path("aisec-policy.json"), help="Policy file to create."),
+    profile: str = typer.Option("balanced", "--profile", help="Built-in profile: strict, balanced, or dev."),
+    force: bool = typer.Option(False, "--force", help="Replace an existing policy file."),
+) -> None:
+    """Create a reviewable policy file from a deterministic built-in profile."""
+    try:
+        policy = profile_policy(profile)
+    except ValueError as e:
+        raise typer.BadParameter(str(e))
+    if path.exists() and not force:
+        raise typer.BadParameter(f"refusing to overwrite existing file: {path}; use --force")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(validate_policy(policy), indent=2) + "\n", encoding="utf-8")
+    typer.echo(f"policy created: {path} (profile={profile})")
+
+
 @policy_app.command("show")
 def policy_show(profile: str = typer.Argument(..., help="Built-in profile: strict, balanced, or dev.")) -> None:
     """Show a built-in policy profile."""

@@ -94,7 +94,7 @@ Version tags (`vX.Y.Z`) build and validate both wheel and source distributions. 
 
 ## CI security gate
 
-Every push and pull request runs the full native scanner suite through `aisec scan . --all`. The security workflow gates on high/critical findings and uploads SARIF results to GitHub code scanning. GitHub Actions dependencies are pinned to immutable commit SHAs and checkout disables persisted credentials.
+Every push and pull request runs the full native scanner suite through `aisec scan . --all` with the repository policy applied. The security workflow gates on the checked-in policy and uploads SARIF results to GitHub code scanning. GitHub Actions dependencies are pinned to immutable commit SHAs and checkout disables persisted credentials.
 
 ## Common reporting model
 
@@ -198,11 +198,12 @@ For teams that do not need a checked-in policy file, the CLI provides determinis
 
 ```bash
 aisec scan . --all --policy-profile balanced
+aisec policy init examples/security-policy.json --profile balanced
 aisec policy show balanced
 aisec policy validate examples/security-policy.json
 ```
 
-A checked-in `--policy` file and `--policy-profile` are mutually exclusive. A policy file's `fail_on` value overrides the CLI threshold, while exclusions are always surfaced in warnings.
+`aisec policy init` creates a reviewable policy from a deterministic profile and refuses to overwrite an existing file unless `--force` is supplied.\n\nA checked-in `--policy` file and `--policy-profile` are mutually exclusive. A policy file's `fail_on` value overrides the CLI threshold, while exclusions are always surfaced in warnings.
 
 `aisec policy validate` rejects unknown top-level fields, unsupported versions, malformed exclusions, and invalid severities so policy drift fails closed.
 
