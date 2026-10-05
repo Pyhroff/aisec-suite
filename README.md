@@ -64,6 +64,10 @@ aisec worm ./package --json worm-findings.json
 aisec modules
 ```
 
+## CI security gate
+
+Every push and pull request runs the full native scanner suite through `aisec scan . --all`. The security workflow gates on high/critical findings and uploads SARIF results to GitHub code scanning. GitHub Actions dependencies are pinned to immutable commit SHAs and checkout disables persisted credentials.
+
 ## Common reporting model
 
 Integrated scanners are normalized into a shared `Finding` model so downstream automation can consume results consistently.
