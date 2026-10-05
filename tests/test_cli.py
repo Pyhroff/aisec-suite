@@ -44,3 +44,16 @@ def test_context_file_scanned_by_memsentry(tmp_path):
 
 def test_bad_fail_on_rejected(tmp_path):
     assert runner.invoke(app, ["scan", str(tmp_path), "--fail-on", "nope"]).exit_code != 0
+
+
+def test_all_flag_is_available(tmp_path):
+    (tmp_path / "README.md").write_text("clean")
+    r = runner.invoke(app, ["scan", str(tmp_path), "--all"])
+    assert r.exit_code == 0, r.output
+    assert "findings:" in r.output
+
+
+def test_all_and_only_are_mutually_exclusive(tmp_path):
+    r = runner.invoke(app, ["scan", str(tmp_path), "--all", "--only", "mcp"])
+    assert r.exit_code != 0
+    assert "--all cannot be combined with --only" in r.output
