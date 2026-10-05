@@ -106,6 +106,17 @@ aisec scan . --write-baseline .aisec-baseline.json
 aisec scan . --baseline .aisec-baseline.json --fail-on high
 ```
 
+## Finding lifecycle
+
+Baselines are fingerprint-based and remain stable across line-number shifts. When a baseline is supplied, the scanner classifies findings as **new**, **existing**, or **resolved**:
+
+```bash
+aisec scan . --baseline .aisec-baseline.json --json findings.json
+# lifecycle: new=2 existing=5 resolved=1
+```
+
+Only new findings remain in the active finding output, so `--fail-on` evaluates newly introduced risk rather than repeatedly failing on already-accepted findings. Resolved fingerprints are reported for cleanup and audit visibility.
+
 ## Architecture
 
 ```text
