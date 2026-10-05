@@ -12,7 +12,12 @@ from aisec import __version__
 from aisec.adapters import scan_context_files, scan_manifest_files, scan_mcp_source, scan_rag_dir
 from aisec.model import SEVERITY_ORDER, at_least
 from aisec.modules import available_modules
-from aisec.native_adapters import (\n    scan_agent_trace,\n    scan_supply_chain,\n    scan_training_dataset,\n    scan_worm_tree,\n)
+from aisec.native_adapters import (
+    scan_agent_trace,
+    scan_supply_chain,
+    scan_training_dataset,
+    scan_worm_tree,
+)
 from aisec.sarif import to_sarif
 from aisec.summary import to_markdown
 
