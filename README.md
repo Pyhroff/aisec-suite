@@ -170,6 +170,21 @@ The suite exposes reusable precision, recall, F1, and false-positive-rate calcul
 
 Benchmark methodology and evaluation results live in [`docs/STUDY.md`](docs/STUDY.md). Treat measured results as evidence for the documented corpus and experimental design, not as universal guarantees.
 
+## Policy as code
+
+Use a versioned JSON policy to define enforcement and narrowly scoped finding exclusions:
+
+```bash
+aisec scan . --all --policy examples/security-policy.json
+```
+
+Policy version 1 supports:
+- `fail_on`: `low`, `medium`, `high`, or `critical`
+- `exclude`: selectors for `scanner`, `rule`, `file`, and `severity`
+- shell-style glob matching for selectors
+
+Exclusions are explicit and visible in scan warnings; default behavior is unchanged without a policy file. Keep policy files in version control and review exclusions like code.
+
 ## Security reporting and triage
 
 When `GITHUB_STEP_SUMMARY` is available, every scan writes a concise security report to the GitHub Actions job summary. The report includes severity counts, baseline lifecycle state, warnings, and a prioritized triage queue.
