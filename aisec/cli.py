@@ -35,6 +35,7 @@ def modules() -> None:
 @app.command()
 def scan(
     path: pathlib.Path = typer.Argument(..., exists=True, file_okay=False, help="Repository root to scan."),
+    only: Optional[str] = typer.Option(None, "--only", help="Comma-separated modules: mcp,memory,rag. Other portfolio modules are exposed by aisec modules and remain specialist commands until native adapters exist."),
     rag: Optional[pathlib.Path] = typer.Option(None, "--rag", help="Directory of RAG source documents."),
     sarif: Optional[pathlib.Path] = typer.Option(None, "--sarif", help="Write SARIF 2.1.0 here."),
     json_out: Optional[pathlib.Path] = typer.Option(None, "--json", help="Write normalized findings as JSON."),
@@ -67,7 +68,13 @@ def scan(
     selected = {"mcp", "memory"}
     if rag:
         selected.add("rag")
-    if not selected.intersection({"mcp", "memory", "rag"}):
+    if only:
+        requested = {x.strip() for x in only.split(",") if x.strip()}
+        unknown = requested - {"mcp", "memory", "rag"}
+        if unknown:
+            raise typer.BadParameter("unsupported inline modules: " + ", ".join(sorted(unknown)) + "; use the specialist CLI until a native adapter is added")
+        selected = requested
+    if not selected:
         raise typer.BadParameter("no runnable static modules selected")
 
     if "mcp" in selected:
