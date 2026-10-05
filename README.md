@@ -7,7 +7,6 @@
 [![CI](https://github.com/Pyhroff/aisec-suite/actions/workflows/tests.yml/badge.svg)](https://github.com/Pyhroff/aisec-suite/actions/workflows/tests.yml)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![SARIF](https://img.shields.io/badge/output-SARIF%202.1.0-informational.svg)](https://sarifweb.azurewebsites.net/)
 
 ### Security signals for the inputs your AI agent actually trusts.
 
@@ -19,7 +18,7 @@
 
 Traditional application scanners focus on source code, dependencies, and runtime behavior. AI systems also consume **tool descriptions, memory files, retrieved documents, training data, and agent traces** that can influence decisions without looking like ordinary executable code.
 
-**aisec-suite** brings those surfaces into one product-level security workflow with a shared CLI, normalized findings, CI-friendly exit codes, JSON/SARIF output, and reusable baselines.
+**aisec-suite** brings those surfaces into one product-level workflow with a shared CLI, normalized findings, CI-friendly exit codes, JSON/SARIF output, and reusable baselines.
 
 The individual scanner repositories remain independently versioned and testable. This repository is the **umbrella product**.
 
@@ -42,7 +41,6 @@ The individual scanner repositories remain independently versioned and testable.
 
 ```bash
 pip install "aisec-suite[all]"
-
 aisec scan .
 aisec scan . --rag ./docs
 aisec scan . --sarif aisec.sarif --json findings.json --fail-on high
@@ -63,13 +61,13 @@ aisec worm ./package --json worm-findings.json
 aisec modules
 ```
 
-The module registry explicitly distinguishes native umbrella integrations from specialist-only research tooling.
+The module registry distinguishes native umbrella integrations from specialist-only research tooling.
 
 ## Common reporting model
 
-Integrated scanners are normalized into the shared `Finding` model so CI and downstream tooling do not have to learn a different result shape for every scanner.
+Integrated scanners are normalized into a shared `Finding` model so automation does not need a different result shape for every scanner.
 
-Supported outputs include terminal output, normalized JSON, SARIF 2.1.0, Markdown job summaries, severity gates, and reusable baselines.
+Supported outputs include terminal reports, normalized JSON, SARIF 2.1.0, Markdown job summaries, severity gates, and reusable baselines.
 
 ```bash
 aisec scan . --write-baseline .aisec-baseline.json
@@ -80,7 +78,7 @@ aisec scan . --baseline .aisec-baseline.json --fail-on high
 
 **Static-first.** Repository scanning reads source and metadata rather than launching the target application or MCP server.
 
-**Fail closed.** Scanner crashes are distinguishable from a clean result.
+**Fail closed.** A scanner crash is distinguishable from a clean result.
 
 **Composable.** Specialist repositories keep their own release cadence, tests, and research history.
 
@@ -111,9 +109,9 @@ aisec scan . --baseline .aisec-baseline.json --fail-on high
 
 `adversagen` remains the attack-side research layer: it searches for evasions and regression cases rather than acting as another static scanner.
 
-## CI / GitHub Actions
+## CI
 
-The suite can emit SARIF for code-scanning workflows. Grant only the permissions required by the workflow:
+Use least-privilege permissions for SARIF/code-scanning workflows:
 
 ```yaml
 permissions:
@@ -123,13 +121,13 @@ permissions:
 
 ## Project status
 
-The umbrella currently provides native adapters for **MCP, memory, RAG, training data, supply-chain inspection, agent-loop behavior, and package-worm detection**.
+Native umbrella adapters now cover **MCP, memory, RAG, training data, supply-chain inspection, agent-loop behavior, and package-worm detection**.
 
-The adversarial research runner remains intentionally separate because its purpose is controlled red-team experimentation rather than static artifact scanning.
+The adversarial research runner remains intentionally separate because it is an experiment engine rather than a static artifact scanner.
 
-## Research and evaluation
+## Research
 
-Benchmark numbers live with the methodology in [`docs/STUDY.md`](docs/STUDY.md). Interpret them as evidence for the documented corpus and experimental design, not as universal guarantees.
+Benchmark methodology and evaluation results live in [`docs/STUDY.md`](docs/STUDY.md). Treat measured results as evidence for the documented corpus and experiment design, not as universal guarantees.
 
 ## Development
 
