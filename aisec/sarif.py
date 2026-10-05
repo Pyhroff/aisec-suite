@@ -33,7 +33,7 @@ def to_sarif(findings: list[Finding]) -> dict:
             "locations": [{"physicalLocation": {"artifactLocation": {"uri": f.file.replace("\\", "/")},
                                                 "region": {"startLine": max(1, f.line)}}}],
             "partialFingerprints": {"aisec/v1": f.fingerprint},
-            "properties": {"severity": f.severity, "scanner": f.scanner},
+            "properties": {"severity": f.severity, "scanner": f.scanner, "confidence": f.confidence, "target": f.target, "remediation": f.remediation},
         })
     return {
         "$schema": "https://json.schemastore.org/sarif-2.1.0.json",
