@@ -6,6 +6,22 @@
       "scanner": "mcpaudit",
       "rule": "example-*",
       "file": "tests/**"
+    },
+    {
+      "scanner": "ragsentry",
+      "file": "aisec/poison.py"
+    },
+    {
+      "scanner": "ragsentry",
+      "file": "benchmarks/poison/**"
+    },
+    {
+      "scanner": "ragsentry",
+      "file": "tests/**"
+    },
+    {
+      "scanner": "ragsentry",
+      "file": "**/__pycache__/**"
     }
   ]
 }
