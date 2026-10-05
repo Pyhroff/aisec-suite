@@ -14,7 +14,7 @@ from aisec.model import Finding, SEVERITY_ORDER
 
 PROFILE_NAMES = ("strict", "balanced", "dev")
 PROFILES = {
-    "strict": "critical",
+    "strict": "low",
     "balanced": "high",
     "dev": "critical",
 }
