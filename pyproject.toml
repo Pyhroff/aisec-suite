@@ -4,36 +4,29 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aisec-suite"
-version = "0.3.0"
-description = "One command that runs mcpaudit, memsentry and ragsentry on a repo and emits SARIF for GitHub code scanning."
+version = "1.0.0"
+description = "Unified AI security toolkit for agent, MCP, memory, RAG, training-data, supply-chain and behavioral risk."
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "Pyhroff" }]
 requires-python = ">=3.10"
-keywords = ["MCP", "prompt injection", "SARIF", "AI security", "LLM agents", "code scanning"]
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Security",
-]
+keywords = ["AI security", "MCP", "LLM agents", "prompt injection", "RAG", "training data poisoning", "supply chain", "SARIF"]
+classifiers = ["Development Status :: 4 - Beta","Intended Audience :: Developers","License :: OSI Approved :: MIT License","Programming Language :: Python :: 3","Programming Language :: Python :: 3.10","Programming Language :: Python :: 3.11","Programming Language :: Python :: 3.12","Topic :: Security"]
 dependencies = ["typer>=0.12"]
 
 [project.optional-dependencies]
-scanners = ["pyhroff-mcpaudit>=0.7", "memsentry>=1.2", "pyhroff-ragsentry>=1.1"]
-dev = ["pytest>=8", "ruff>=0.5"]
+scanners = ["pyhroff-mcpaudit>=0.7","memsentry>=1.2","pyhroff-ragsentry>=1.1","trainsentry>=1.1","loopcheck>=0.2","adversagen>=0.1","wormsentry>=1.0"]
+supply-chain = ["agent-install-guardrail>=0.8"]
+all = ["pyhroff-mcpaudit>=0.7","memsentry>=1.2","pyhroff-ragsentry>=1.1","trainsentry>=1.1","loopcheck>=0.2","adversagen>=0.1","wormsentry>=1.0","agent-install-guardrail>=0.8"]
+dev = ["pytest>=8","ruff>=0.5"]
 
 [project.urls]
 Homepage = "https://github.com/Pyhroff/aisec-suite"
 Issues = "https://github.com/Pyhroff/aisec-suite/issues"
-Changelog = "https://github.com/Pyhroff/aisec-suite/blob/main/CHANGELOG.md"
 
 [project.scripts]
 aisec = "aisec.cli:app"
+aisec-suite = "aisec.cli:app"
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -41,10 +34,7 @@ include = ["aisec*"]
 
 [tool.ruff]
 line-length = 140
-
 [tool.ruff.lint]
-# Explicit so a new ruff release cannot silently change what CI enforces.
-select = ["E4", "E7", "E9", "F"]
-
+select = ["E4","E7","E9","F"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
