@@ -74,8 +74,10 @@ permissions:
   security-events: write
 
 steps:
-  - uses: actions/checkout@v7
-  - uses: Pyhroff/aisec-suite/.github/actions/aisec-scan@v1
+  - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    with:
+      persist-credentials: false
+  - uses: Pyhroff/aisec-suite/.github/actions/aisec-scan@7b355445867cde3724365c6e9a132e4875a78569 # P7 release baseline
     with:
       fail-on: high
       sarif: aisec.sarif
@@ -86,7 +88,7 @@ steps:
       sarif_file: aisec.sarif
 ```
 
-For maximum reproducibility in production, pin the `aisec-suite` action reference to an immutable commit SHA rather than a moving tag. All first-party workflow action dependencies in this repository are pinned to immutable SHAs.
+For maximum reproducibility in production, pin both the `aisec-suite` action reference and its GitHub Action dependencies to immutable commit SHAs. The bundled composite action validates its dependency-extra input before using it in a shell command.
 
 ## Release pipeline
 
