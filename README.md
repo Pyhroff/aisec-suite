@@ -80,12 +80,13 @@ steps:
       fail-on: high
       sarif: aisec.sarif
       json: aisec.json
-  - uses: github/codeql-action/upload-sarif@v3
+      policy-profile: balanced
+  - uses: github/codeql-action/upload-sarif@87ef0dc97def48aa960fbf026a2563ee9dbdb470 # v3
     with:
       sarif_file: aisec.sarif
 ```
 
-For maximum reproducibility in production, pin the `aisec-suite` action reference to an immutable commit SHA rather than a moving tag.
+For maximum reproducibility in production, pin the `aisec-suite` action reference to an immutable commit SHA rather than a moving tag. All first-party workflow action dependencies in this repository are pinned to immutable SHAs.
 
 ## Release pipeline
 
@@ -184,6 +185,26 @@ Policy version 1 supports:
 - shell-style glob matching for selectors
 
 Exclusions are explicit and visible in scan warnings; default behavior is unchanged without a policy file. Keep policy files in version control and review exclusions like code.
+
+## Policy profiles
+
+For teams that do not need a checked-in policy file, the CLI provides deterministic enforcement profiles:
+
+| Profile | Fails at | Intended use |
+|---|---|---|
+| `strict` | low | release/security validation |
+| `balanced` | high | normal CI |
+| `dev` | critical | local development |
+
+```bash
+aisec scan . --all --policy-profile balanced
+aisec policy show balanced
+aisec policy validate examples/security-policy.json
+```
+
+A checked-in `--policy` file and `--policy-profile` are mutually exclusive. A policy file's `fail_on` value overrides the CLI threshold, while exclusions are always surfaced in warnings.
+
+`aisec policy validate` rejects unknown top-level fields, unsupported versions, malformed exclusions, and invalid severities so policy drift fails closed.
 
 ## Security reporting and triage
 
