@@ -9,6 +9,7 @@ from typing import Optional
 import typer
 
 from aisec import __version__
+from aisec.benchmark import load_metrics, run_range
 from aisec.adapters import scan_context_files, scan_manifest_files, scan_mcp_source, scan_rag_dir
 from aisec.model import SEVERITY_ORDER, at_least
 from aisec.modules import available_modules
@@ -198,3 +199,32 @@ def worm(path: pathlib.Path = typer.Argument(..., exists=True, file_okay=False),
          sarif: Optional[pathlib.Path] = typer.Option(None, "--sarif"),
          fail_on: Optional[str] = typer.Option(None, "--fail-on")) -> None:
     _single_module("worm", path, json_out, sarif, fail_on)
+
+
+@app.command("benchmark")
+def benchmark(
+    range_dir: pathlib.Path = typer.Argument(..., exists=True, file_okay=False, help="agent-test-range checkout."),
+    metrics_json: Optional[pathlib.Path] = typer.Option(None, "--json", help="Write/read machine-readable benchmark metrics."),
+) -> None:
+    """Run the controlled regression benchmark and report detection quality."""
+    output = metrics_json or (range_dir / "benchmark" / "metrics.json")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    code, output_text = run_range(range_dir, output)
+    typer.echo(output_text, nl=False)
+    if output.is_file():
+        payload = load_metrics(output)
+        overall = payload["overall"]
+        typer.echo(
+            f"benchmark: cases={payload['cases']} "
+            f"precision={overall['precision']:.4f} "
+            f"recall={overall['recall']:.4f} "
+            f"f1={overall['f1']:.4f} "
+            f"fpr={overall['false_positive_rate']:.4f}"
+        )
+        for scanner, metrics in payload["by_scanner"].items():
+            typer.echo(
+                f"  {scanner}: precision={metrics['precision']:.4f} "
+                f"recall={metrics['recall']:.4f} f1={metrics['f1']:.4f} "
+                f"fpr={metrics['false_positive_rate']:.4f}"
+            )
+    raise typer.Exit(code)
