@@ -21,7 +21,7 @@ inputs:
   install-extra:
     description: "Optional dependency set to install from aisec-suite."
     required: false
-    default: "all"
+    default: "core"
   policy-profile:
     description: "Built-in policy profile: strict, balanced, or dev."
     required: false
