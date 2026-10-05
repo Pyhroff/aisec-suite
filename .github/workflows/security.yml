@@ -20,7 +20,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install the full scanner suite
+      - name: Install the public scanner suite
         run: pip install -e ".[all]"
 
       - name: Run unified AI security scan
@@ -28,7 +28,7 @@ jobs:
           aisec scan . --all --sarif aisec.sarif --json aisec.json --fail-on high
 
       - name: Upload SARIF
-        if: always()
-        uses: github/codeql-action/upload-sarif@87ef0dc97def48aa960fbf026a2563ee9dbdb470 # v3
+        if: always() && hashFiles('aisec.sarif') != ''
+        uses: github/codeql-action/upload-sarif@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4
         with:
           sarif_file: aisec.sarif
