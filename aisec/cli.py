@@ -109,7 +109,10 @@ def scan(
     for w in warnings:
         typer.echo(f"warning: {w}", err=True)
     by_sev = collections.Counter(f.severity for f in findings)
-    typer.echo(f"tools extracted: {n_tools} | findings: {len(findings)} (critical {by_sev['critical']}, high {by_sev['high']}, medium {by_sev['medium']}, low {by_sev['low']})"
+    typer.echo(
+        f"tools extracted: {n_tools} | findings: {len(findings)} "
+        f"(critical {by_sev['critical']}, high {by_sev['high']}, medium {by_sev['medium']}, low {by_sev['low']})"
+    )
     if suppressed:
         typer.echo(f"baseline-suppressed: {suppressed}")
     for f in findings[:25]:
