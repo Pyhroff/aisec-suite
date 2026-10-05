@@ -8,30 +8,55 @@ import json
 import pathlib
 import subprocess
 import sys
+import tempfile
 from typing import Any
 
 from aisec.model import Finding
 
-def _run_json(scanner: str, args: list[str], *, root: pathlib.Path) -> tuple[int, Any, str]:
+def _run_json(
+    scanner: str,
+    args: list[str],
+    *,
+    root: pathlib.Path,
+    output_file: pathlib.Path | None = None,
+) -> tuple[int, Any, str]:
+    final_args = list(args)
+    if output_file is not None:
+        final_args += ["--json", str(output_file)]
     proc = subprocess.run(
-        [sys.executable, "-m", scanner, *args],
+        [sys.executable, "-m", scanner, *final_args],
         cwd=root,
         text=True,
         capture_output=True,
         check=False,
     )
+    if output_file is not None and output_file.is_file():
+        try:
+            return (
+                proc.returncode,
+                json.loads(output_file.read_text(encoding="utf-8")),
+                proc.stderr.strip(),
+            )
+        except (OSError, json.JSONDecodeError):
+            pass
     try:
-        payload = json.loads(proc.stdout)
+        return proc.returncode, json.loads(proc.stdout), proc.stderr.strip()
     except json.JSONDecodeError:
         return proc.returncode, None, (proc.stderr or proc.stdout).strip()
-    return proc.returncode, payload, proc.stderr.strip()
 
 def scan_training_dataset(dataset: pathlib.Path, warnings: list[str] | None = None) -> list[Finding]:
     """Run trainsentry's JSON output through its installed CLI."""
     if not dataset.is_file():
         raise ValueError(f"dataset does not exist: {dataset}")
     try:
-        rc, payload, err = _run_json("trainsentry.cli", ["scan", str(dataset), "--json", "-"], root=dataset.parent)
+        with tempfile.TemporaryDirectory() as tmp:
+            out = pathlib.Path(tmp) / "trainsentry.json"
+            rc, payload, err = _run_json(
+                "trainsentry.cli",
+                ["scan", str(dataset)],
+                root=dataset.parent,
+                output_file=out,
+            )
     except Exception as exc:
         if warnings is not None:
             warnings.append(f"trainsentry unavailable: {exc}")
@@ -47,7 +72,14 @@ def scan_agent_trace(trace: pathlib.Path, warnings: list[str] | None = None) -> 
     if not trace.is_file():
         raise ValueError(f"trace does not exist: {trace}")
     try:
-        rc, payload, err = _run_json("loopcheck.cli", ["analyze", str(trace), "--json", "-"], root=trace.parent)
+        with tempfile.TemporaryDirectory() as tmp:
+            out = pathlib.Path(tmp) / "loopcheck.json"
+            rc, payload, err = _run_json(
+                "loopcheck.cli",
+                ["analyze", str(trace)],
+                root=trace.parent,
+                output_file=out,
+            )
     except Exception as exc:
         if warnings is not None:
             warnings.append(f"loopcheck unavailable: {exc}")
@@ -61,7 +93,28 @@ def scan_agent_trace(trace: pathlib.Path, warnings: list[str] | None = None) -> 
 def scan_supply_chain(target: str, warnings: list[str] | None = None) -> list[Finding]:
     """Run the guardrail inspection CLI and normalize its JSON finding list."""
     try:
-        rc, payload, err = _run_json("guardrail.cli", ["inspect", target, "--format", "json"], root=pathlib.Path.cwd())
+        with tempfile.TemporaryDirectory() as tmp:
+            out = pathlib.Path(tmp) / "guardrail.json"
+            proc = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "guardrail.cli",
+                    "inspect",
+                    target,
+                    "--format",
+                    "json",
+                    "--output",
+                    str(out),
+                ],
+                cwd=pathlib.Path.cwd(),
+                text=True,
+                capture_output=True,
+                check=False,
+            )
+            rc = proc.returncode
+            err = proc.stderr.strip()
+            payload = json.loads(out.read_text(encoding="utf-8")) if out.is_file() else None
     except Exception as exc:
         if warnings is not None:
             warnings.append(f"agent-install-guardrail unavailable: {exc}")
