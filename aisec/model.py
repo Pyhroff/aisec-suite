@@ -15,6 +15,9 @@ class Finding:
     file: str         # path relative to the scan root
     line: int = 1
     evidence: str = ""   # why severity was adjusted (reachability); not part of the fingerprint
+    confidence: float = 1.0
+    target: str = ""
+    remediation: str = ""
 
     @property
     def fingerprint(self) -> str:
@@ -23,7 +26,7 @@ class Finding:
         return hashlib.sha256(raw.encode()).hexdigest()[:32]
 
     def to_dict(self) -> dict:
-        return {**asdict(self), "fingerprint": self.fingerprint}
+        data = {**asdict(self), "fingerprint": self.fingerprint}\n        data["confidence"] = max(0.0, min(1.0, float(self.confidence)))\n        return data
 
 
 def at_least(severity: str, threshold: str) -> bool:
