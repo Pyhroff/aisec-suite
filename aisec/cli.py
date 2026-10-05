@@ -11,10 +11,11 @@ import typer
 from aisec import __version__
 from aisec.adapters import scan_context_files, scan_manifest_files, scan_mcp_source, scan_rag_dir
 from aisec.model import SEVERITY_ORDER, at_least
+from aisec.modules import available_modules
 from aisec.sarif import to_sarif
 from aisec.summary import to_markdown
 
-app = typer.Typer(name="aisec", help="Run mcpaudit, memsentry and ragsentry on a repository in one command.", no_args_is_help=True)
+app = typer.Typer(name="aisec", help="Unified AI security toolkit.", no_args_is_help=True)
 
 
 @app.callback()
@@ -24,19 +25,26 @@ def _main(version: bool = typer.Option(False, "--version", is_eager=True)) -> No
         raise typer.Exit()
 
 
+@app.command("modules")
+def modules() -> None:
+    """List all suite modules and their optional specialist packages."""
+    for spec in available_modules():
+        typer.echo(f"{spec.name:13} {spec.package:30} {spec.description}")
+
+
 @app.command()
 def scan(
     path: pathlib.Path = typer.Argument(..., exists=True, file_okay=False, help="Repository root to scan."),
-    rag: Optional[pathlib.Path] = typer.Option(None, "--rag", help="Directory of RAG source documents to scan with ragsentry."),
-    sarif: Optional[pathlib.Path] = typer.Option(None, "--sarif", help="Write SARIF 2.1.0 here (for GitHub code scanning)."),
-    json_out: Optional[pathlib.Path] = typer.Option(None, "--json", help="Write findings as JSON here."),
-    fail_on: Optional[str] = typer.Option(None, "--fail-on", help="Exit 1 if any finding is at or above: low|medium|high|critical."),
-    include_tests: bool = typer.Option(False, "--include-tests", help="Also extract tools from tests/examples/fixtures."),
-    reach: str = typer.Option("annotate", "--reach", help="Sink-aware reachability: off | annotate (default; only lowers refuted findings) | strict (also caps unproven findings at medium, so HIGH means a sink was reached)."),
-    structural: bool = typer.Option(True, "--structural/--no-structural", help="Structural tool-poisoning detector (decodes hidden/encoded text, scores model-directed instructions in descriptions and parameter metadata)."),
-    baseline: Optional[pathlib.Path] = typer.Option(None, "--baseline", help="JSON file of accepted findings; they are hidden and never fail the run."),
-    write_baseline: Optional[pathlib.Path] = typer.Option(None, "--write-baseline", help="Write current findings as a baseline (accept everything seen today)."),
-    summary: Optional[pathlib.Path] = typer.Option(None, "--summary", help="Write a Markdown summary here (defaults to $GITHUB_STEP_SUMMARY when set)."),
+    rag: Optional[pathlib.Path] = typer.Option(None, "--rag", help="Directory of RAG source documents."),
+    sarif: Optional[pathlib.Path] = typer.Option(None, "--sarif", help="Write SARIF 2.1.0 here."),
+    json_out: Optional[pathlib.Path] = typer.Option(None, "--json", help="Write normalized findings as JSON."),
+    fail_on: Optional[str] = typer.Option(None, "--fail-on", help="Exit 1 at low|medium|high|critical."),
+    include_tests: bool = typer.Option(False, "--include-tests", help="Also inspect tests/examples/fixtures."),
+    reach: str = typer.Option("annotate", "--reach", help="off | annotate | strict."),
+    structural: bool = typer.Option(True, "--structural/--no-structural", help="Enable structural MCP poisoning detector."),
+    baseline: Optional[pathlib.Path] = typer.Option(None, "--baseline", help="Accepted finding fingerprints."),
+    write_baseline: Optional[pathlib.Path] = typer.Option(None, "--write-baseline", help="Accept all current findings."),
+    summary: Optional[pathlib.Path] = typer.Option(None, "--summary", help="Write Markdown summary."),
 ) -> None:
     if reach not in ("off", "annotate", "strict"):
         raise typer.BadParameter("--reach must be off, annotate or strict")
@@ -47,58 +55,60 @@ def scan(
     crashed: list[str] = []
 
     def guarded(label, fn, default, *args):
-        """A scanner bug must not masquerade as 'findings exist' (exit 1) nor as a clean pass."""
         try:
             return fn(*args)
-        except Exception as e:  # noqa: BLE001 - third-party scanners; report, don't die
+        except Exception as e:  # noqa: BLE001
             crashed.append(label)
             warnings.append(f"{label} crashed ({type(e).__name__}: {e}); its results are missing")
             return default
 
-    findings, n_tools = guarded("mcpaudit (source)", scan_mcp_source, ([], 0), root, include_tests, warnings, reach, structural)
-    findings = list(findings)
-    findings += guarded("mcpaudit (manifests)", scan_manifest_files, [], root, warnings)
-    findings += guarded("memsentry", scan_context_files, [], root, warnings)
+    findings: list = []
+    n_tools = 0
+    selected = {"mcp", "memory"}
     if rag:
-        findings += guarded("ragsentry", scan_rag_dir, [], rag.resolve(), root, warnings)
-    findings.sort(key=lambda f: (-SEVERITY_ORDER[f.severity], f.file, f.line))
+        selected.add("rag")
+    if not selected.intersection({"mcp", "memory", "rag"}):
+        raise typer.BadParameter("no runnable static modules selected")
 
+    if "mcp" in selected:
+        findings, n_tools = guarded("mcpaudit (source)", scan_mcp_source, ([], 0), root, include_tests, warnings, reach, structural)
+        findings = list(findings)
+        findings += guarded("mcpaudit (manifests)", scan_manifest_files, [], root, warnings)
+    if "memory" in selected:
+        findings += guarded("memsentry", scan_context_files, [], root, warnings)
+    if "rag" in selected and rag:
+        findings += guarded("ragsentry", scan_rag_dir, [], rag.resolve(), root, warnings)
+
+    findings.sort(key=lambda f: (-SEVERITY_ORDER[f.severity], f.file, f.line, f.scanner, f.rule))
     if write_baseline:
-        write_baseline.write_text(json.dumps(sorted({f.fingerprint for f in findings}), indent=2))
+        write_baseline.write_text(json.dumps(sorted({f.fingerprint for f in findings}), indent=2), encoding="utf-8")
         typer.echo(f"baseline written: {len(findings)} findings accepted -> {write_baseline}")
     suppressed = 0
     if baseline:
         try:
-            accepted = set(json.loads(baseline.read_text()))
+            accepted = set(json.loads(baseline.read_text(encoding="utf-8")))
         except (OSError, ValueError) as e:
             raise typer.BadParameter(f"cannot read baseline: {e}")
         kept = [f for f in findings if f.fingerprint not in accepted]
         suppressed, findings = len(findings) - len(kept), kept
-
     if sarif:
         sarif.write_text(json.dumps(to_sarif(findings), indent=2), encoding="utf-8")
     if json_out:
         json_out.write_text(json.dumps([f.to_dict() for f in findings], indent=2), encoding="utf-8")
-
-    summary = summary or (pathlib.Path(os.environ["GITHUB_STEP_SUMMARY"]) if os.environ.get("GITHUB_STEP_SUMMARY") else None)
-    if summary:
-        with summary.open("a", encoding="utf-8") as fh:
+    summary_path = summary or (pathlib.Path(os.environ["GITHUB_STEP_SUMMARY"]) if os.environ.get("GITHUB_STEP_SUMMARY") else None)
+    if summary_path:
+        with summary_path.open("a", encoding="utf-8") as fh:
             fh.write(to_markdown(findings, n_tools, warnings, suppressed))
-
     for w in warnings:
         typer.echo(f"warning: {w}", err=True)
     by_sev = collections.Counter(f.severity for f in findings)
-    typer.echo(f"tools extracted: {n_tools} | findings: {len(findings)} "
-               f"(critical {by_sev['critical']}, high {by_sev['high']}, medium {by_sev['medium']}, low {by_sev['low']})"
-               + (f" | baseline-suppressed: {suppressed}" if suppressed else ""))
-    if n_tools == 0:
-        typer.echo("note: no MCP tools were found statically; that means 'unknown', not 'safe'.")
+    typer.echo(f"tools extracted: {n_tools} | findings: {len(findings)} (critical {by_sev['critical']}, high {by_sev['high']}, medium {by_sev['medium']}, low {by_sev['low']})")
     for f in findings[:25]:
         typer.echo(f"  [{f.severity:8}] {f.file}:{f.line}  {f.scanner}  {f.rule}")
     if len(findings) > 25:
-        typer.echo(f"  ... and {len(findings) - 25} more (use --json or --sarif for all)")
+        typer.echo(f"  ... and {len(findings) - 25} more")
     if fail_on and crashed and not any(at_least(f.severity, fail_on) for f in findings):
-        typer.echo(f"error: {len(crashed)} scanner(s) crashed, so a clean result can't be trusted (exit 2)", err=True)
+        typer.echo(f"error: {len(crashed)} scanner(s) crashed; result is incomplete (exit 2)", err=True)
         raise typer.Exit(2)
     if fail_on and any(at_least(f.severity, fail_on) for f in findings):
         raise typer.Exit(1)
