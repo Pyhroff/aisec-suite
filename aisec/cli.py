@@ -13,6 +13,7 @@ from aisec.benchmark import load_metrics, run_range
 from aisec.adapters import scan_context_files, scan_manifest_files, scan_mcp_source, scan_rag_dir
 from aisec.model import SEVERITY_ORDER, at_least
 from aisec.policy import apply_policy, load_policy
+from aisec.policy import apply_policy, load_policy
 from aisec.lifecycle import classify, load_baseline
 from aisec.modules import available_modules
 from aisec.native_adapters import (
@@ -60,6 +61,7 @@ def scan(
     baseline: Optional[pathlib.Path] = typer.Option(None, "--baseline", help="Accepted finding fingerprints."),
     write_baseline: Optional[pathlib.Path] = typer.Option(None, "--write-baseline", help="Accept all current findings."),
     summary: Optional[pathlib.Path] = typer.Option(None, "--summary", help="Write Markdown summary."),
+    policy: Optional[pathlib.Path] = typer.Option(None, "--policy", exists=True, dir_okay=False, help="JSON policy-as-code file."),
     policy: Optional[pathlib.Path] = typer.Option(None, "--policy", exists=True, dir_okay=False, help="JSON policy-as-code file."),
 ) -> None:
     if reach not in ("off", "annotate", "strict"):
@@ -126,6 +128,17 @@ def scan(
         findings += guarded("wormsentry", scan_worm_tree, [], root, warnings)
         policy_excluded = 0
     policy_obj = None
+    if policy:
+        try:
+            policy_obj = load_policy(policy)
+            findings, policy_excluded = apply_policy(findings, policy_obj)
+            if policy_obj.fail_on:
+                fail_on = policy_obj.fail_on
+        except (OSError, ValueError) as e:
+            raise typer.BadParameter(f"cannot read policy: {e}")
+    if policy_excluded:
+        warnings.append(f"{policy_excluded} finding(s) excluded by policy")
+    policy_excluded = 0
     if policy:
         try:
             policy_obj = load_policy(policy)
