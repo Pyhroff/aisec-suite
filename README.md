@@ -108,6 +108,18 @@ Native umbrella adapters now cover **MCP, memory, RAG, training data, supply-cha
 
 The adversarial research runner remains intentionally separate because it is an experiment engine rather than a static artifact scanner.
 
+## Controlled benchmark
+
+Run the end-to-end regression corpus through the umbrella CLI:
+
+```bash
+aisec benchmark ../agent-test-range --json benchmark/metrics.json
+```
+
+The command delegates execution to the real scanner regression harness and validates its versioned metrics contract. It reports overall and per-scanner precision, recall, F1, false-positive rate, and the underlying confusion-matrix counts.
+
+This benchmark is intentionally a **controlled regression corpus**, not a universal claim about production detection accuracy.
+
 ## Detection quality
 
 The suite exposes reusable precision, recall, F1, and false-positive-rate calculations for controlled regression corpora. These metrics are intended for reproducible benchmark cases—not claims of universal real-world detection rates.
