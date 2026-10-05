@@ -3,7 +3,7 @@
 One public product with independently versioned specialist scanners behind a
 common CLI and finding model.
 """
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 MODULES = {
     "mcp": "MCP tool-surface poisoning and privilege analysis (mcpaudit)",
