@@ -26,9 +26,9 @@ The individual scanner repositories remain independently versioned and testable.
 
 | Surface | Module | Primary capability |
 |---|---|---|
-| MCP | [mcpaudit](https://github.com/Pyhroff/mcpaudit) | Tool poisoning, permission scope, rug pulls, confused-deputy testing |
-| Memory | [memsentry](https://github.com/Pyhroff/memsentry) | Persistent instruction injection, provenance manipulation, goal hijacking |
-| RAG | [ragsentry](https://github.com/Pyhroff/ragsentry) | Document injection, hidden payloads, fake remediation, retrieval manipulation |
+| MCP | mcpaudit | Tool poisoning, permission scope, rug pulls, confused-deputy testing |
+| Memory | memsentry | Persistent instruction injection, provenance manipulation, goal hijacking |
+| RAG | ragsentry | Document injection, hidden payloads, fake remediation, retrieval manipulation |
 | Training data | [trainsentry](https://github.com/Pyhroff/trainsentry) | Fine-tuning poisoning, trigger patterns, goal hijacking, duplicate flooding |
 | Supply chain | [agent-install-guardrail](https://github.com/Pyhroff/agent-install-guardrail) | Pre-install decisions, dependency analysis, policy, SBOM |
 | Agent behavior | [loopcheck](https://github.com/Pyhroff/loopcheck) | Duplicate calls, thrashing, stale retries, regression and waste analysis |
@@ -231,7 +231,7 @@ pytest -q
 
 ## Portfolio
 
-[mcpaudit](https://github.com/Pyhroff/mcpaudit) · [memsentry](https://github.com/Pyhroff/memsentry) · [ragsentry](https://github.com/Pyhroff/ragsentry) · [trainsentry](https://github.com/Pyhroff/trainsentry) · [agent-install-guardrail](https://github.com/Pyhroff/agent-install-guardrail) · [loopcheck](https://github.com/Pyhroff/loopcheck) · [wormsentry](https://github.com/Pyhroff/wormsentry) · [adversagen](https://github.com/Pyhroff/adversagen) · [agent-security-ci](https://github.com/Pyhroff/agent-security-ci) · [agent-test-range](https://github.com/Pyhroff/agent-test-range)
+mcpaudit · memsentry · ragsentry · [trainsentry](https://github.com/Pyhroff/trainsentry) · [agent-install-guardrail](https://github.com/Pyhroff/agent-install-guardrail) · [loopcheck](https://github.com/Pyhroff/loopcheck) · [wormsentry](https://github.com/Pyhroff/wormsentry) · [adversagen](https://github.com/Pyhroff/adversagen) · [agent-security-ci](https://github.com/Pyhroff/agent-security-ci) · [agent-test-range](https://github.com/Pyhroff/agent-test-range)
 
 ## License
 
