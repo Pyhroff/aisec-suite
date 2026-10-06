@@ -1,4 +1,4 @@
-# 🛡️ aisec-suite
+#  aisec-suite
 
 <div align="center">
 
