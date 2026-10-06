@@ -9,8 +9,8 @@ from aisec.model import Finding
 _LEVEL = {"critical": "error", "high": "error", "medium": "warning", "low": "note"}
 # GitHub ranks code-scanning alerts by this CVSS-like number (>=9 critical, 7-8.9 high, 4-6.9 medium, <4 low).
 _SECURITY_SEVERITY = {"critical": "9.5", "high": "8.0", "medium": "5.5", "low": "2.0"}
-_HELP = {"mcpaudit": "https://github.com/Pyhroff/mcpaudit", "memsentry": "https://github.com/Pyhroff/memsentry",
-         "ragsentry": "https://github.com/Pyhroff/ragsentry"}
+_HELP = {"mcpaudit": "https://github.com/Pyhroff/aisec-suite", "memsentry": "https://github.com/Pyhroff/aisec-suite",
+         "ragsentry": "https://github.com/Pyhroff/aisec-suite"}
 
 
 def _rule_id(f: Finding) -> str:
