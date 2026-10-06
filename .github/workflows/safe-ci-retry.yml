@@ -10,7 +10,11 @@ permissions:
 
 jobs:
   retry:
-    if: github.event.workflow_run.conclusion == 'failure' && github.event.workflow_run.run_attempt == 1
+    if: >-
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.run_attempt == 1 &&
+      github.event.workflow_run.name != 'Safe CI retry' &&
+      github.event.workflow_run.name != 'CI failure classification'
     runs-on: ubuntu-latest
     steps:
       - name: Retry failed jobs once
@@ -20,7 +24,7 @@ jobs:
           RUN_ID: ${{ github.event.workflow_run.id }}
         run: |
           set -euo pipefail
-          gh api --paginate "repos/$REPO/actions/runs/$RUN_ID/jobs?per_page=100"             --jq '.jobs[] | select(.conclusion == "failure") | .id' |
+          gh api --paginate "repos/$REPO/actions/runs/$RUN_ID/jobs?per_page=100"             --jq '.jobs // [] | .[] | select(.conclusion == "failure") | .id' |
           while read -r job_id; do
             [ -n "$job_id" ] || continue
             gh api --method POST "repos/$REPO/actions/jobs/$job_id/rerun" >/dev/null
