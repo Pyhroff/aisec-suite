@@ -247,6 +247,12 @@ mcpaudit · memsentry · ragsentry · trainsentry · agent-install-guardrail · 
 
 See [docs/PORTFOLIO.md](docs/PORTFOLIO.md) for the portfolio-level threat-model and evaluation standard. The intended flagship path is **PromptStrike → ModelHawk → Adversagen → mcpaudit → aisec-suite**, with RAG, memory, loop and supply-chain scanners providing supporting coverage.
 
+## Portfolio visibility
+
+The umbrella intentionally separates public proof from private R&D. The public repositories are the reproducible, recruiter-facing subset; specialist components that remain private are not required to use this README as a navigational link.
+
+For the current public entry points, start with **aisec-suite**, **mcp-scan-study**, **promptstrike**, and **ModelHawk**. Private specialist implementations are exercised through the controlled regression layer when access is available.
+
 ## License
 
 MIT
