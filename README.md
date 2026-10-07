@@ -241,6 +241,12 @@ pytest -q
 
 mcpaudit · memsentry · ragsentry · trainsentry · agent-install-guardrail · loopcheck · wormsentry · adversagen · agent-security-ci · agent-test-range
 
+
+
+## Portfolio / research architecture
+
+See [docs/PORTFOLIO.md](docs/PORTFOLIO.md) for the portfolio-level threat-model and evaluation standard. The intended flagship path is **PromptStrike → ModelHawk → Adversagen → mcpaudit → aisec-suite**, with RAG, memory, loop and supply-chain scanners providing supporting coverage.
+
 ## License
 
 MIT
