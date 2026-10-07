@@ -26,14 +26,14 @@ The individual scanner repositories remain independently versioned and testable.
 
 | Surface | Module | Primary capability |
 |---|---|---|
-| MCP | mcpaudit | Tool poisoning, permission scope, rug pulls, confused-deputy testing |
-| Memory | memsentry | Persistent instruction injection, provenance manipulation, goal hijacking |
-| RAG | ragsentry | Document injection, hidden payloads, fake remediation, retrieval manipulation |
-| Training data | [trainsentry](https://github.com/Pyhroff/trainsentry) | Fine-tuning poisoning, trigger patterns, goal hijacking, duplicate flooding |
-| Supply chain | [agent-install-guardrail](https://github.com/Pyhroff/agent-install-guardrail) | Pre-install decisions, dependency analysis, policy, SBOM |
-| Agent behavior | [loopcheck](https://github.com/Pyhroff/loopcheck) | Duplicate calls, thrashing, stale retries, regression and waste analysis |
-| Package worms | [wormsentry](https://github.com/Pyhroff/wormsentry) | Risky install scripts, credential harvesting, self-propagation patterns |
-| Adversarial research | [adversagen](https://github.com/Pyhroff/adversagen) | Adaptive evasion experiments against scanner-style defenses |
+| MCP | mcpaudit *(private)* | Tool poisoning, permission scope, rug pulls, confused-deputy testing |
+| Memory | memsentry *(private)* | Persistent instruction injection, provenance manipulation, goal hijacking |
+| RAG | ragsentry *(private)* | Document injection, hidden payloads, fake remediation, retrieval manipulation |
+| Training data | trainsentry *(private)* | Fine-tuning poisoning, trigger patterns, goal hijacking, duplicate flooding |
+| Supply chain | agent-install-guardrail *(private)* | Pre-install decisions, dependency analysis, policy, SBOM |
+| Agent behavior | loopcheck *(private)* | Duplicate calls, thrashing, stale retries, regression and waste analysis |
+| Package worms | wormsentry *(private)* | Risky install scripts, credential harvesting, self-propagation patterns |
+| Adversarial research | adversagen *(private)* | Adaptive evasion experiments against scanner-style defenses |
 
 ## One CLI
 
@@ -205,7 +205,9 @@ aisec policy show balanced
 aisec policy validate examples/security-policy.json
 ```
 
-`aisec policy init` creates a reviewable policy from a deterministic profile and refuses to overwrite an existing file unless `--force` is supplied.\n\nA checked-in `--policy` file and `--policy-profile` are mutually exclusive. A policy file's `fail_on` value overrides the CLI threshold, while exclusions are always surfaced in warnings.
+`aisec policy init` creates a reviewable policy from a deterministic profile and refuses to overwrite an existing file unless `--force` is supplied.
+
+A checked-in `--policy` file and `--policy-profile` are mutually exclusive. A policy file's `fail_on` value overrides the CLI threshold, while exclusions are always surfaced in warnings.
 
 `aisec policy validate` rejects unknown top-level fields, unsupported versions, malformed exclusions, and invalid severities so policy drift fails closed.
 
@@ -231,7 +233,7 @@ pytest -q
 
 ## Portfolio
 
-mcpaudit · memsentry · ragsentry · [trainsentry](https://github.com/Pyhroff/trainsentry) · [agent-install-guardrail](https://github.com/Pyhroff/agent-install-guardrail) · [loopcheck](https://github.com/Pyhroff/loopcheck) · [wormsentry](https://github.com/Pyhroff/wormsentry) · [adversagen](https://github.com/Pyhroff/adversagen) · [agent-security-ci](https://github.com/Pyhroff/agent-security-ci) · [agent-test-range](https://github.com/Pyhroff/agent-test-range)
+mcpaudit · memsentry · ragsentry · trainsentry · agent-install-guardrail · loopcheck · wormsentry · adversagen · agent-security-ci · agent-test-range
 
 ## License
 
