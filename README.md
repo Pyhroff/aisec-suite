@@ -20,20 +20,20 @@ Traditional application scanners focus on source code, dependencies, and runtime
 
 **aisec-suite** brings those surfaces into one product-level workflow with a shared CLI, normalized findings, CI-friendly exit codes, JSON/SARIF output, and reusable baselines.
 
-The individual scanner repositories remain independently versioned and testable. This repository is the **umbrella product**.
+The individual scanner packages remain independently versioned and testable. This repository is the **umbrella product**; the scanner packages are installed as optional dependencies.
 
 ## Coverage
 
 | Surface | Module | Primary capability |
 |---|---|---|
-| MCP | mcpaudit *(private)* | Tool poisoning, permission scope, rug pulls, confused-deputy testing |
-| Memory | memsentry *(private)* | Persistent instruction injection, provenance manipulation, goal hijacking |
-| RAG | ragsentry *(private)* | Document injection, hidden payloads, fake remediation, retrieval manipulation |
-| Training data | trainsentry *(private)* | Fine-tuning poisoning, trigger patterns, goal hijacking, duplicate flooding |
-| Supply chain | agent-install-guardrail *(private)* | Pre-install decisions, dependency analysis, policy, SBOM |
-| Agent behavior | loopcheck *(private)* | Duplicate calls, thrashing, stale retries, regression and waste analysis |
-| Package worms | wormsentry *(private)* | Risky install scripts, credential harvesting, self-propagation patterns |
-| Adversarial research | adversagen *(private)* | Adaptive evasion experiments against scanner-style defenses |
+| MCP | mcpaudit *(specialist package)* | Tool poisoning, permission scope, rug pulls, confused-deputy testing |
+| Memory | memsentry *(specialist package)* | Persistent instruction injection, provenance manipulation, goal hijacking |
+| RAG | ragsentry *(specialist package)* | Document injection, hidden payloads, fake remediation, retrieval manipulation |
+| Training data | trainsentry *(specialist package)* | Fine-tuning poisoning, trigger patterns, goal hijacking, duplicate flooding |
+| Supply chain | agent-install-guardrail *(specialist package)* | Pre-install decisions, dependency analysis, policy, SBOM |
+| Agent behavior | loopcheck *(specialist package)* | Duplicate calls, thrashing, stale retries, regression and waste analysis |
+| Package worms | wormsentry *(specialist package)* | Risky install scripts, credential harvesting, self-propagation patterns |
+| Adversarial research | adversagen *(specialist package)* | Adaptive evasion experiments against scanner-style defenses |
 
 ## One CLI
 
@@ -66,7 +66,7 @@ aisec modules
 
 ## Reusable GitHub Action
 
-Use the bundled composite action to standardize the scanner in another workflow:
+Use the bundled composite action to standardize the scanner in another workflow. The example pins the action itself to an immutable commit; update that SHA only when intentionally upgrading the action:
 
 ```yaml
 permissions:
@@ -77,7 +77,7 @@ steps:
   - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     with:
       persist-credentials: false
-  - uses: Pyhroff/aisec-suite/.github/actions/aisec-scan@7b355445867cde3724365c6e9a132e4875a78569 # P7 release baseline
+  - uses: Pyhroff/aisec-suite/.github/actions/aisec-scan@7b355445867cde3724365c6e9a132e4875a78569 # pinned action revision
     with:
       fail-on: high
       sarif: aisec.sarif
@@ -97,6 +97,12 @@ Version tags (`vX.Y.Z`) build and validate both wheel and source distributions. 
 ## CI security gate
 
 Every push and pull request runs the full native scanner suite through `aisec scan . --all` with the repository policy applied. The security workflow gates on the checked-in policy and uploads SARIF results to GitHub code scanning. GitHub Actions dependencies are pinned to immutable commit SHAs and checkout disables persisted credentials.
+
+## Package and release status
+
+The repository may contain unreleased development changes ahead of the latest PyPI publication. For reproducible installs, pin the aisec-suite package version and specialist package versions in deployment and CI configuration rather than assuming the repository development version is the published release.
+
+The release workflow enforces an important invariant: a pushed vX.Y.Z tag must exactly match the version declared in pyproject.toml before publication. PyPI publishing uses trusted publishing (OIDC), so no long-lived PyPI API token is required.
 
 ## Common reporting model
 
