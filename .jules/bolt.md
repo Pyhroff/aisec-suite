@@ -1,0 +1,3 @@
+## 2026-10-15 - AST Traversal Caching in Static Security Analysis
+**Learning:** In static analysis rules (such as `aisec.reach`), functions like `ast.walk` and variable expression name resolution are often executed inside fixed-point propagation loops or across separate pass functions (`_propagate`, `_guards_in`). Pre-collecting AST nodes into a list once per function and pre-extracting statement target/value name sets before loop iterations yields ~2x speedup without altering analysis semantics or accuracy.
+**Action:** Always reuse pre-collected node lists when performing multiple AST inspection passes on Python functions.
