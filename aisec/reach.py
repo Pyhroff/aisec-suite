@@ -104,25 +104,31 @@ def _store_names(t) -> set[str]:
     return set()  # attribute/subscript targets (self.x = ...) deliberately do not taint their base
 
 
-def _propagate(fn, tainted: set[str]) -> set[str]:
+def _propagate(nodes: list[ast.AST], tainted: set[str]) -> set[str]:
+    # Perf optimization: Pre-extract assignment target store_names and value _names once per statement node
+    # to avoid repeated ast.walk traversal and name resolution during fixed-point propagation iterations.
     tainted = set(tainted)
+    pairs_list: list[tuple[set[str], set[str]]] = []
+    for node in nodes:
+        if isinstance(node, ast.Assign):
+            targets = set().union(*(_store_names(t) for t in node.targets))
+            pairs_list.append((targets, _names(node.value)))
+        elif isinstance(node, (ast.AnnAssign, ast.AugAssign)) and node.value is not None:
+            pairs_list.append((_store_names(node.target), _names(node.value)))
+        elif isinstance(node, ast.NamedExpr):
+            pairs_list.append((_store_names(node.target), _names(node.value)))
+        elif isinstance(node, (ast.For, ast.AsyncFor, ast.comprehension)):
+            pairs_list.append((_store_names(node.target), _names(node.iter)))
+        elif isinstance(node, (ast.With, ast.AsyncWith)):
+            for i in node.items:
+                if i.optional_vars:
+                    pairs_list.append((_store_names(i.optional_vars), _names(i.context_expr)))
+
     for _ in range(3):
         before = len(tainted)
-        for node in ast.walk(fn):
-            pairs: list[tuple[set[str], ast.AST]] = []
-            if isinstance(node, ast.Assign):
-                pairs = [(set().union(*(_store_names(t) for t in node.targets)), node.value)]
-            elif isinstance(node, (ast.AnnAssign, ast.AugAssign)) and node.value is not None:
-                pairs = [(_store_names(node.target), node.value)]
-            elif isinstance(node, ast.NamedExpr):
-                pairs = [(_store_names(node.target), node.value)]
-            elif isinstance(node, (ast.For, ast.AsyncFor, ast.comprehension)):
-                pairs = [(_store_names(node.target), node.iter)]
-            elif isinstance(node, (ast.With, ast.AsyncWith)):
-                pairs = [(_store_names(i.optional_vars), i.context_expr) for i in node.items if i.optional_vars]
-            for targets, value in pairs:
-                if _names(value) & tainted:
-                    tainted |= targets
+        for targets, val_names in pairs_list:
+            if val_names & tainted:
+                tainted |= targets
         if len(tainted) == before:
             break
     return tainted
@@ -156,9 +162,10 @@ def _arg_tainted(call: ast.Call, tainted: set[str], positions=(0,), kws=("path",
     return any(k.arg in kws and _names(k.value) & tainted for k in call.keywords)
 
 
-def _guards_in(fn, tainted: set[str]) -> set[str]:
+def _guards_in(nodes: list[ast.AST], tainted: set[str]) -> set[str]:
+    # Perf optimization: Reuses pre-collected AST nodes list instead of calling ast.walk(fn) again.
     called, ids = set(), set()
-    for n in ast.walk(fn):
+    for n in nodes:
         if isinstance(n, ast.Call):
             called.add(_dotted(n.func).rsplit(".", 1)[-1])
         if isinstance(n, ast.Attribute):
@@ -186,17 +193,19 @@ def _walk_fn(fn, tainted: set[str], ctx: _Ctx, depth: int) -> None:
     if key in ctx.seen:
         return
     ctx.seen.add(key)
-    if sum(1 for _ in ast.walk(fn)) > MAX_NODES:
+    # Perf optimization: Collect AST nodes once per function walk instead of re-walking multiple times.
+    nodes = list(ast.walk(fn))
+    if len(nodes) > MAX_NODES:
         ctx.unknown = True
         return
-    tainted = _propagate(fn, tainted)
-    ctx.guards |= _guards_in(fn, tainted)
+    tainted = _propagate(nodes, tainted)
+    ctx.guards |= _guards_in(nodes, tainted)
 
     def hit(kind: str, call: ast.Call, label: str) -> None:
         ctx.kinds.add(kind)
         ctx.evidence.append(f"{label}() at {ctx.fname}:{call.lineno}")
 
-    for call in (n for n in ast.walk(fn) if isinstance(n, ast.Call)):
+    for call in (n for n in nodes if isinstance(n, ast.Call)):
         name = _dotted(call.func)
         last = name.rsplit(".", 1)[-1]
         recv = call.func.value if isinstance(call.func, ast.Attribute) else None
