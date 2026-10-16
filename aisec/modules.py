@@ -20,6 +20,7 @@ REGISTRY = {
     "behavior": ModuleSpec("behavior", MODULES["behavior"], "loopcheck", True, "behavior TRACE"),
     "adversarial": ModuleSpec("adversarial", MODULES["adversarial"], "adversagen", False, "specialist CLI"),
     "worm": ModuleSpec("worm", MODULES["worm"], "wormsentry", True, "worm PATH"),
+    "formal": ModuleSpec("formal", MODULES["formal"], "pyhroff-specprove-sec", True, "scan PATH --formal"),
 }
 
 def available_modules():

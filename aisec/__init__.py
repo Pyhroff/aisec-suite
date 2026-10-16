@@ -3,7 +3,7 @@
 One public product with independently versioned specialist scanners behind a
 common CLI and finding model.
 """
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 MODULES = {
     "mcp": "MCP tool-surface poisoning and privilege analysis (mcpaudit)",
@@ -14,4 +14,5 @@ MODULES = {
     "behavior": "agent-loop waste and regression analysis (loopcheck)",
     "adversarial": "adaptive red-team/evasion experiments (adversagen)",
     "worm": "self-propagating package/supply-chain behavior (wormsentry)",
+    "formal": "Z3 SMT formal state-machine verification, CEGIS patch synthesis & Lean 4 proof certificates (specprove-sec)",
 }

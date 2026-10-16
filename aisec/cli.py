@@ -9,7 +9,13 @@ from typing import Optional
 import typer
 
 from aisec import __version__
-from aisec.adapters import scan_context_files, scan_manifest_files, scan_mcp_source, scan_rag_dir
+from aisec.adapters import (
+    scan_context_files,
+    scan_manifest_files,
+    scan_mcp_source,
+    scan_rag_dir,
+    scan_specprove_formal,
+)
 from aisec.benchmark import load_metrics, run_range
 from aisec.lifecycle import classify, load_baseline
 from aisec.model import SEVERITY_ORDER, at_least
@@ -92,7 +98,7 @@ def _emit(findings: list, *, json_out: Optional[pathlib.Path], sarif: Optional[p
 @app.command()
 def scan(
     path: pathlib.Path = typer.Argument(..., exists=True, file_okay=False, help="Repository root to scan."),
-    only: Optional[str] = typer.Option(None, "--only", help="Comma-separated modules: mcp,memory,rag,training,behavior,supply-chain,worm."),
+    only: Optional[str] = typer.Option(None, "--only", help="Comma-separated modules: mcp,memory,rag,training,behavior,supply-chain,worm,formal."),
     all_modules: bool = typer.Option(False, "--all", help="Run every native suite module against the repository where applicable."),
     rag: Optional[pathlib.Path] = typer.Option(None, "--rag", help="Directory of RAG source documents."),
     sarif: Optional[pathlib.Path] = typer.Option(None, "--sarif", help="Write SARIF 2.1.0 here."),
@@ -102,6 +108,8 @@ def scan(
     include_tests: bool = typer.Option(False, "--include-tests", help="Also inspect tests/examples/fixtures."),
     reach: str = typer.Option("annotate", "--reach", help="off | annotate | strict."),
     structural: bool = typer.Option(True, "--structural/--no-structural", help="Enable structural MCP poisoning detector."),
+    formal: bool = typer.Option(False, "--formal/--no-formal", help="Run SpecProve-Sec Z3 SMT formal state-machine verification & CEGIS patch prover."),
+    lean_out: Optional[pathlib.Path] = typer.Option(None, "--lean-out", help="Directory to export Lean 4 formal proof certificates when --formal is enabled."),
     baseline: Optional[pathlib.Path] = typer.Option(None, "--baseline", help="Accepted finding fingerprints."),
     write_baseline: Optional[pathlib.Path] = typer.Option(None, "--write-baseline", help="Accept all current findings."),
     summary: Optional[pathlib.Path] = typer.Option(None, "--summary", help="Write Markdown summary."),
@@ -133,15 +141,17 @@ def scan(
     selected = {"mcp", "memory"}
     if rag:
         selected.add("rag")
+    if formal or lean_out is not None:
+        selected.add("formal")
     if all_modules and only:
         raise typer.BadParameter("--all cannot be combined with --only")
     if all_modules and rag is None:
         rag = root
     if all_modules:
-        selected = {"mcp", "memory", "rag", "training", "behavior", "supply-chain", "worm"}
+        selected = {"mcp", "memory", "rag", "training", "behavior", "supply-chain", "worm", "formal"}
     if only:
         requested = {x.strip() for x in only.split(",") if x.strip()}
-        unknown = requested - {"mcp", "memory", "rag", "training", "behavior", "supply-chain", "worm"}
+        unknown = requested - {"mcp", "memory", "rag", "training", "behavior", "supply-chain", "worm", "formal"}
         if unknown:
             raise typer.BadParameter("unsupported modules: " + ", ".join(sorted(unknown)))
         selected = requested
@@ -158,6 +168,8 @@ def scan(
         findings += guarded("memsentry", scan_context_files, [], root, warnings)
     if "rag" in selected and rag:
         findings += guarded("ragsentry", scan_rag_dir, [], rag.resolve(), root, warnings)
+    if "formal" in selected:
+        findings += guarded("specprove (z3-smt)", scan_specprove_formal, [], root, include_tests, warnings, lean_out)
     if "training" in selected:
         dataset = root / "training_data.jsonl"
         if dataset.is_file():
