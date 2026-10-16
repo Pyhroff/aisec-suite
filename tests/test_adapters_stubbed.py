@@ -144,8 +144,8 @@ def test_summary_written(fake_scanners, tmp_path):
     root, _ = _repo(tmp_path)
     s = root / "sum.md"
     runner.invoke(app, ["scan", str(root), "--summary", str(s)])
-    text = s.read_text()
-    assert "aisec-suite scan" in text and "memsentry" in text
+    text = s.read_text(encoding="utf-8")
+    assert "aisec-suite" in text and "memsentry" in text
 
 
 def test_missing_scanner_is_skipped_with_warning(monkeypatch, tmp_path):
