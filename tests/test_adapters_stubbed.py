@@ -163,3 +163,62 @@ def test_crashing_scanner_is_reported_not_a_false_pass_or_false_finding(fake_sca
     r = runner.invoke(app, ["scan", str(tmp_path), "--fail-on", "high"])
     assert r.exit_code == 2 and "crashed" in r.output
     assert runner.invoke(app, ["scan", str(tmp_path)]).exit_code == 0  # no gate requested -> warning only
+
+
+def test_formal_specprove_scanner_integration(fake_scanners, monkeypatch, tmp_path):
+    @dataclass
+    class FakeFormalHit:
+        scanner: str = "specprove"
+        rule: str = "MCP-01: NoConfusedDeputyPrivilegeEscalation (CWE-441)"
+        severity: str = "critical"
+        message: str = "[MCP-01] Confused-Deputy proved SAT at k=2"
+        file: str = "server.py"
+        line: int = 12
+        evidence: str = "z3-bmc: SAT at depth k=2 | cegis-patch: EnforceCallerCapabilityAttestation -> PROVED_INDUCTIVE"
+
+    def fake_scan_repo_with_specprove(root, include_tests=False, lean_out_dir=None):
+        if lean_out_dir:
+            lean_out_dir.mkdir(parents=True, exist_ok=True)
+            (lean_out_dir / "MCP_01.lean").write_text("theorem step_preserves_invariant : True := trivial\n")
+        return [FakeFormalHit()]
+
+    monkeypatch.setitem(sys.modules, "specprove", _mod("specprove"))
+    monkeypatch.setitem(
+        sys.modules,
+        "specprove.ecosystem_bridge",
+        _mod(
+            "specprove.ecosystem_bridge",
+            scan_repo_with_specprove=fake_scan_repo_with_specprove,
+            verify_reach_verdict_with_z3=lambda tool, verdict, kinds: ("z3_proved_exploitable", "z3-smt: SAT"),
+        ),
+    )
+
+    root, _ = _repo(tmp_path)
+    out = root / "formal.json"
+    sarif_file = root / "formal.sarif"
+    lean_dir = root / "lean_certs"
+    r = runner.invoke(
+        app,
+        [
+            "scan",
+            str(root),
+            "--formal",
+            "--lean-out",
+            str(lean_dir),
+            "--json",
+            str(out),
+            "--sarif",
+            str(sarif_file),
+        ],
+    )
+    assert r.exit_code == 0, r.output
+    data = json.loads(out.read_text())
+    scanners = {f["scanner"] for f in data}
+    assert "specprove" in scanners
+    spec_hit = next(f for f in data if f["scanner"] == "specprove")
+    assert "z3-bmc: SAT at depth k=2" in spec_hit["evidence"]
+    assert (lean_dir / "MCP_01.lean").exists()
+    sarif_doc = json.loads(sarif_file.read_text())
+    rule_ids = {r["id"] for r in sarif_doc["runs"][0]["tool"]["driver"]["rules"]}
+    assert any(rid.startswith("specprove/") for rid in rule_ids)
+

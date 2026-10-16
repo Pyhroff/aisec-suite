@@ -55,6 +55,12 @@ def scan_mcp_source(root: pathlib.Path, include_tests: bool = False, warnings: l
             if reach_mode != "off" and f.check == "permission_scope":
                 r = reach.assess(src)
                 sev, note = reach.adjust_severity(sev, r, reach_mode == "strict"), r.note()
+                try:
+                    from specprove.ecosystem_bridge import verify_reach_verdict_with_z3
+                    _, z3_note = verify_reach_verdict_with_z3(f.tool, r.verdict, r.kinds)
+                    note = f"{note} | {z3_note}" if note else z3_note
+                except ImportError:
+                    pass
             findings.append(Finding("mcpaudit", f"{f.check}: {f.title}", sev, f.detail, src.get("file", "."), src.get("line", 1), note))
     if structural:
         from aisec import poison
@@ -114,3 +120,35 @@ def scan_rag_dir(rag_dir: pathlib.Path, root: pathlib.Path, warnings: list[str] 
         for f in fs:
             out.append(Finding("ragsentry", f"{f.check}: {f.title}", f.severity.value, f.detail, _rel(pathlib.Path(fname), root), f.line))
     return out
+
+
+def scan_specprove_formal(
+    root: pathlib.Path,
+    include_tests: bool = False,
+    warnings: list[str] | None = None,
+    lean_out: pathlib.Path | None = None,
+) -> list[Finding]:
+    """Run SpecProve-Sec Z3 SMT Bounded Model Checker + CEGIS Patch Prover + Lean 4 Certificate generator."""
+    try:
+        from specprove.ecosystem_bridge import scan_repo_with_specprove
+    except ImportError:
+        if warnings is not None:
+            warnings.append("specprove not installed: skipped Z3 SMT formal state-machine verification")
+        return []
+    formal_hits = scan_repo_with_specprove(root, include_tests=include_tests, lean_out_dir=lean_out)
+    return [
+        Finding(
+            scanner="specprove",
+            rule=fh.rule,
+            severity=fh.severity,
+            message=fh.message,
+            file=fh.file,
+            line=fh.line,
+            evidence=fh.evidence,
+            confidence=1.0,
+            target=getattr(fh, "protocol_id", ""),
+            remediation=getattr(fh, "cegis_diff", "") or "",
+        )
+        for fh in formal_hits
+    ]
+
