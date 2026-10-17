@@ -158,6 +158,37 @@ def remediate_repository(root: pathlib.Path) -> RemediationSummary:
     except ImportError:
         pass
 
+    # 5. AttestInfer Cryptographic Re-Attestation for .proof.json files
+    try:
+        from attestinfer.attest_engine import (
+            VerifiableInferenceAuditor,
+            load_proof_bundle,
+            save_proof_bundle,
+        )
+
+        auditor = VerifiableInferenceAuditor()
+        for pr_file in sorted(root.rglob("*.proof.json")):
+            if any(p in pr_file.parts for p in (".venv", "venv", ".git", "tests")):
+                continue
+            bundle = load_proof_bundle(pr_file)
+            ver = auditor.verify_proof_bundle(bundle)
+            if ver.verdict != "VERIFIED_AUTHENTIC":
+                healed = auditor.re_attest_and_heal_proof(bundle)
+                save_proof_bundle(healed, pr_file)
+                post_ver = auditor.verify_proof_bundle(healed)
+                summary.actions.append(
+                    RemediationAction(
+                        scanner="attestinfer",
+                        target_file=str(pr_file.relative_to(root)),
+                        action_type="Freivalds + SHA-256 Merkle Re-Attestation",
+                        pre_status=f"{ver.verdict} (Res={ver.freivalds_max_residual:.3f}, KL={ver.logit_kl_divergence:.2f})",
+                        post_status=f"{post_ver.verdict} (Res={post_ver.freivalds_max_residual:.4f}, KL={post_ver.logit_kl_divergence:.4f})",
+                        detail=f"Recomputed authentic FP32 matmul & sealed Merkle root {healed.claimed_merkle_root[:16]}...",
+                    )
+                )
+    except ImportError:
+        pass
+
     return summary
 
 
@@ -165,7 +196,7 @@ def generate_unified_command_center_html(
     findings: List[Finding],
     remediation: RemediationSummary | None = None,
 ) -> str:
-    """Render the unified 11-module `aisec-suite` Command Center HTML5 dashboard."""
+    """Render the unified 12-module `aisec-suite` Command Center HTML5 dashboard."""
     findings_json = json.dumps([f.to_dict() for f in findings])
     rem_json = json.dumps(
         [
@@ -185,7 +216,7 @@ def generate_unified_command_center_html(
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>aisec-suite v{__version__} — Unified 11-Module AI Security Command Center</title>
+<title>aisec-suite v{__version__} — Unified 12-Module AI Security Command Center</title>
 <style>
   :root {{
     --bg: #070a12;
@@ -232,47 +263,54 @@ def generate_unified_command_center_html(
 <body>
 <div class="hero">
   <div>
-    <h1>aisec-suite v{__version__} — Unified 11-Module AI Security Command Center</h1>
-    <p>Correlating Static MCP/RAG/Memory Hygiene &bull; Z3 SMT Formal Verification (SpecProve-Sec) &bull; RMT Spectral Weight Forensics (WeightSpecter v2.0) &bull; Viterbi Side-Channel Cryptanalysis (TokenSpecter) &bull; Mechanistic Refusal Firewall (CircuitShield)</p>
+    <h1>aisec-suite v{__version__} — Unified 12-Module AI Security Command Center</h1>
+    <p>Static MCP/RAG/Memory Hygiene &bull; Z3 SMT Formal Verification (SpecProve-Sec) &bull; RMT Spectral Forensics (WeightSpecter v2.0) &bull; Verifiable Inference (AttestInfer) &bull; Viterbi Side-Channel (TokenSpecter) &bull; Mechanistic Firewall (CircuitShield)</p>
   </div>
-  <div><span class="pill clean" style="font-size:12px;padding:6px 14px;">11 Specialist Scanners Active</span></div>
+  <div><span class="pill clean" style="font-size:12px;padding:6px 14px;">12 Specialist Scanners Active</span></div>
 </div>
 
 <div class="kpis" id="kpi-bar"></div>
 
 <div class="card">
-  <h2>Multi-Layer Agentic Kill-Chain Architecture &amp; Defense Planes</h2>
-  <svg viewBox="0 0 960 150" style="width:100%;height:150px;background:#090d18;border-radius:10px;border:1px solid #1e293b;">
+  <h2>5-Plane Agentic Kill-Chain Architecture &amp; Mathematical Defense Stack</h2>
+  <svg viewBox="0 0 980 150" style="width:100%;height:150px;background:#090d18;border-radius:10px;border:1px solid #1e293b;">
     <defs>
       <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
         <path d="M 0 0 L 10 5 L 0 10 z" fill="#38bdf8"/>
       </marker>
     </defs>
-    <rect x="20" y="35" width="160" height="80" rx="8" fill="#162038" stroke="#38bdf8" stroke-width="1.5"/>
-    <text x="100" y="65" fill="#f8fafc" font-size="12" font-weight="700" text-anchor="middle">1. Data &amp; Weights</text>
-    <text x="100" y="85" fill="#94a3b8" font-size="10" text-anchor="middle">WeightSpecter v2 (RMT/TW1)</text>
-    <text x="100" y="100" fill="#94a3b8" font-size="10" text-anchor="middle">TrainSentry / RagSentry</text>
+    <rect x="14" y="35" width="165" height="80" rx="8" fill="#162038" stroke="#38bdf8" stroke-width="1.5"/>
+    <text x="96" y="62" fill="#f8fafc" font-size="11.5" font-weight="700" text-anchor="middle">1. Data &amp; Weights</text>
+    <text x="96" y="82" fill="#94a3b8" font-size="9.5" text-anchor="middle">WeightSpecter v2 (RMT/TW1)</text>
+    <text x="96" y="98" fill="#94a3b8" font-size="9.5" text-anchor="middle">TrainSentry / RagSentry</text>
 
-    <line x1="180" y1="75" x2="250" y2="75" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="179" y1="75" x2="210" y2="75" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow)"/>
 
-    <rect x="255" y="35" width="180" height="80" rx="8" fill="#162038" stroke="#a855f7" stroke-width="1.5"/>
-    <text x="345" y="65" fill="#f8fafc" font-size="12" font-weight="700" text-anchor="middle">2. Residual Subspace</text>
-    <text x="345" y="85" fill="#d8b4fe" font-size="10" text-anchor="middle">CircuitShield Firewall</text>
-    <text x="345" y="100" fill="#94a3b8" font-size="10" text-anchor="middle">Homeostatic Refusal Clamp</text>
+    <rect x="214" y="35" width="168" height="80" rx="8" fill="#162038" stroke="#ec4899" stroke-width="1.5"/>
+    <text x="298" y="62" fill="#f8fafc" font-size="11.5" font-weight="700" text-anchor="middle">2. Verifiable Compute</text>
+    <text x="298" y="82" fill="#f9a8d4" font-size="9.5" text-anchor="middle">AttestInfer (Freivalds)</text>
+    <text x="298" y="98" fill="#94a3b8" font-size="9.5" text-anchor="middle">SHA-256 Merkle + Sumcheck</text>
 
-    <line x1="435" y1="75" x2="505" y2="75" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="382" y1="75" x2="413" y2="75" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow)"/>
 
-    <rect x="510" y="35" width="190" height="80" rx="8" fill="#162038" stroke="#22c55e" stroke-width="1.5"/>
-    <text x="605" y="65" fill="#f8fafc" font-size="12" font-weight="700" text-anchor="middle">3. Protocol &amp; MCP Gate</text>
-    <text x="605" y="85" fill="#86efac" font-size="10" text-anchor="middle">SpecProve-Sec (Z3 + Lean 4)</text>
-    <text x="605" y="100" fill="#94a3b8" font-size="10" text-anchor="middle">MCPAudit + LoopCheck</text>
+    <rect x="417" y="35" width="168" height="80" rx="8" fill="#162038" stroke="#a855f7" stroke-width="1.5"/>
+    <text x="501" y="62" fill="#f8fafc" font-size="11.5" font-weight="700" text-anchor="middle">3. Residual Subspace</text>
+    <text x="501" y="82" fill="#d8b4fe" font-size="9.5" text-anchor="middle">CircuitShield Firewall</text>
+    <text x="501" y="98" fill="#94a3b8" font-size="9.5" text-anchor="middle">Homeostatic Refusal Clamp</text>
 
-    <line x1="700" y1="75" x2="765" y2="75" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow)"/>
+    <line x1="585" y1="75" x2="616" y2="75" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow)"/>
 
-    <rect x="770" y="35" width="170" height="80" rx="8" fill="#162038" stroke="#f59e0b" stroke-width="1.5"/>
-    <text x="855" y="65" fill="#f8fafc" font-size="12" font-weight="700" text-anchor="middle">4. Encrypted Wire</text>
-    <text x="855" y="85" fill="#fcd34d" font-size="10" text-anchor="middle">TokenSpecter (Viterbi)</text>
-    <text x="855" y="100" fill="#94a3b8" font-size="10" text-anchor="middle">64B Constant-Rate Shaper</text>
+    <rect x="620" y="35" width="168" height="80" rx="8" fill="#162038" stroke="#22c55e" stroke-width="1.5"/>
+    <text x="704" y="62" fill="#f8fafc" font-size="11.5" font-weight="700" text-anchor="middle">4. Protocol &amp; MCP Gate</text>
+    <text x="704" y="82" fill="#86efac" font-size="9.5" text-anchor="middle">SpecProve-Sec (Z3 + Lean 4)</text>
+    <text x="704" y="98" fill="#94a3b8" font-size="9.5" text-anchor="middle">MCPAudit + LoopCheck</text>
+
+    <line x1="788" y1="75" x2="819" y2="75" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <rect x="823" y="35" width="144" height="80" rx="8" fill="#162038" stroke="#f59e0b" stroke-width="1.5"/>
+    <text x="895" y="62" fill="#f8fafc" font-size="11.5" font-weight="700" text-anchor="middle">5. Encrypted Wire</text>
+    <text x="895" y="82" fill="#fcd34d" font-size="9.5" text-anchor="middle">TokenSpecter (Viterbi)</text>
+    <text x="895" y="98" fill="#94a3b8" font-size="9.5" text-anchor="middle">64B Constant Shaper</text>
   </svg>
 </div>
 
@@ -329,7 +367,7 @@ document.getElementById('findings-body').innerHTML = FINDINGS.length ? FINDINGS.
     <td>${{f.message}} <span style="color:#94a3b8;font-size:11px;">${{f.evidence ? '[' + f.evidence + ']' : ''}}</span></td>
     <td><code>${{f.remediation || '—'}}</code></td>
   </tr>
-`).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--green);font-weight:700;">0 Findings — All 11 Security Modules Passed!</td></tr>';
+`).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--green);font-weight:700;">0 Findings — All 12 Security Modules Passed!</td></tr>';
 </script>
 </body>
 </html>

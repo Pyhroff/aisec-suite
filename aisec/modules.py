@@ -24,6 +24,7 @@ REGISTRY = {
     "weights": ModuleSpec("weights", MODULES["weights"], "pyhroff-weightspecter", True, "scan PATH --weights"),
     "sidechannel": ModuleSpec("sidechannel", MODULES["sidechannel"], "pyhroff-tokenspecter", True, "scan PATH --sidechannel"),
     "circuit": ModuleSpec("circuit", MODULES["circuit"], "pyhroff-circuitshield", True, "scan PATH --circuit"),
+    "attest": ModuleSpec("attest", MODULES["attest"], "pyhroff-attestinfer", True, "scan PATH --attest"),
 }
 
 def available_modules():
