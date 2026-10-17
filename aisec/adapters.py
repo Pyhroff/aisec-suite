@@ -200,3 +200,97 @@ def scan_weightspecter_checkpoints(
     return out
 
 
+def scan_tokenspecter_streams(
+    root: pathlib.Path,
+    include_tests: bool = False,
+    warnings: list[str] | None = None,
+) -> list[Finding]:
+    """Run TokenSpecter Viterbi Side-Channel Cryptanalyzer over `.stream.json` packet captures."""
+    try:
+        from tokenspecter.sidechannel_engine import (
+            SideChannelVulnerabilityAuditor,
+            load_stream_trace,
+        )
+    except ImportError:
+        if warnings is not None:
+            warnings.append("tokenspecter not installed: skipped encrypted streaming side-channel checks")
+        return []
+    auditor = SideChannelVulnerabilityAuditor()
+    out: list[Finding] = []
+    for p in _walk(root):
+        if not p.name.endswith(".stream.json"):
+            continue
+        if not include_tests and "tests" in p.parts:
+            continue
+        tr = load_stream_trace(p)
+        res = auditor.audit_trace(tr)
+        if res.verdict == "SHAPED_SAFE":
+            continue
+        sev = "critical" if res.verdict == "LEAKAGE_CRITICAL" else "high"
+        out.append(
+            Finding(
+                scanner="tokenspecter",
+                rule=f"sse_sidechannel_leakage: {res.domain_category}",
+                severity=sev,
+                message=(
+                    f"Mutual Info={res.mutual_information_bits:.2f} bits/tok, "
+                    f"Viterbi Recovery={res.token_recovery_accuracy*100:.0f}% ('{res.viterbi_recovered_phrase}')"
+                ),
+                file=_rel(p, root),
+                line=1,
+                evidence=f"H(L)={res.length_entropy_bits:.2f}b, timing_cv={res.timing_cv:.3f}",
+                confidence=round(min(1.0, res.leakage_risk_score / 100.0), 2),
+                target=res.trace_id,
+                remediation=f"tokenspecter shape {_rel(p, root)} -o shaped_{p.name}",
+            )
+        )
+    return out
+
+
+def scan_circuitshield_traces(
+    root: pathlib.Path,
+    include_tests: bool = False,
+    warnings: list[str] | None = None,
+) -> list[Finding]:
+    """Run CircuitShield Mechanistic Interpretability Firewall over `.act.json` residual traces."""
+    try:
+        from circuitshield.circuit_engine import (
+            CircuitShieldFirewall,
+            load_activation_trace,
+        )
+    except ImportError:
+        if warnings is not None:
+            warnings.append("circuitshield not installed: skipped mechanistic refusal-subspace checks")
+        return []
+    fw = CircuitShieldFirewall()
+    out: list[Finding] = []
+    for p in _walk(root):
+        if not p.name.endswith(".act.json"):
+            continue
+        if not include_tests and "tests" in p.parts:
+            continue
+        tr = load_activation_trace(p)
+        res = fw.audit_trace(tr)
+        if res.verdict == "CIRCUIT_INTACT":
+            continue
+        out.append(
+            Finding(
+                scanner="circuitshield",
+                rule=f"refusal_subspace_ablation: {res.verdict}",
+                severity="critical",
+                message=(
+                    f"Harm={res.mean_harm_score:.2f}, MinRefusalProj={res.min_refusal_projection:.2f}, "
+                    f"MinAttnEntropy={res.min_attention_entropy:.2f}b ({res.ablated_layers_count} layers ablated)"
+                ),
+                file=_rel(p, root),
+                line=1,
+                evidence=" | ".join(res.detected_anomalies[:2]),
+                confidence=round(min(1.0, res.anomaly_score / 100.0), 2),
+                target=res.trace_id,
+                remediation=f"circuitshield clamp {_rel(p, root)} -o clamped_{p.name}",
+            )
+        )
+    return out
+
+
+
