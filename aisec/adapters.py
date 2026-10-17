@@ -293,4 +293,51 @@ def scan_circuitshield_traces(
     return out
 
 
+def scan_attestinfer_proofs(
+    root: pathlib.Path,
+    include_tests: bool = False,
+    warnings: list[str] | None = None,
+) -> list[Finding]:
+    """Run AttestInfer Verifiable Inference Prover over `.proof.json` receipts."""
+    try:
+        from attestinfer.attest_engine import (
+            VerifiableInferenceAuditor,
+            load_proof_bundle,
+        )
+    except ImportError:
+        if warnings is not None:
+            warnings.append("attestinfer not installed: skipped cryptographic inference verification checks")
+        return []
+    auditor = VerifiableInferenceAuditor()
+    out: list[Finding] = []
+    for p in _walk(root):
+        if not p.name.endswith(".proof.json"):
+            continue
+        if not include_tests and "tests" in p.parts:
+            continue
+        bundle = load_proof_bundle(p)
+        v = auditor.verify_proof_bundle(bundle)
+        if v.verdict == "VERIFIED_AUTHENTIC":
+            continue
+        sev = "critical" if v.verdict == "MODEL_DOWNGRADE_FRAUD" else "high"
+        out.append(
+            Finding(
+                scanner="attestinfer",
+                rule=f"verifiable_inference_fraud: {v.verdict}",
+                severity=sev,
+                message=(
+                    f"FreivaldsRes={v.freivalds_max_residual:.4f}, SumcheckDiff={v.sumcheck_discrepancy:.4f}, "
+                    f"LogitKL={v.logit_kl_divergence:.4f}, W1={v.logit_wasserstein_l1:.4f}"
+                ),
+                file=_rel(p, root),
+                line=1,
+                evidence=f"Claimed={v.claimed_model_id}, MerkleMatch={v.merkle_root_matched}",
+                confidence=round(min(1.0, v.fraud_risk_score / 100.0), 2),
+                target=v.proof_id,
+                remediation=f"attestinfer re-attest {_rel(p, root)} -o attested_{p.name}",
+            )
+        )
+    return out
+
+
 

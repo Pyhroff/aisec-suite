@@ -3,7 +3,7 @@
 One public product with independently versioned specialist scanners behind a
 common CLI and finding model.
 """
-__version__ = "2.0.0"
+__version__ = "2.1.0"
 
 MODULES = {
     "mcp": "MCP tool-surface poisoning and privilege analysis (mcpaudit)",
@@ -18,6 +18,7 @@ MODULES = {
     "weights": "RMT spectral & topological LoRA/safetensors backdoor detection & surgical sanitization (weightspecter)",
     "sidechannel": "encrypted streaming SSE token-length & timing Viterbi cryptanalysis & constant-rate shaping (tokenspecter)",
     "circuit": "mechanistic interpretability refusal-subspace & activation-steering firewall (circuitshield)",
+    "attest": "cryptographic verifiable inference, Freivalds matmul prover & model-downgrade detector (attestinfer)",
 }
 
 
