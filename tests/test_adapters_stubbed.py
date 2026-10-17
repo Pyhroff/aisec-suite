@@ -270,3 +270,26 @@ def test_weightspecter_rmt_scanner_integration(fake_scanners, monkeypatch, tmp_p
     assert any(f["scanner"] == "weightspecter" for f in data)
 
 
+def test_command_center_remediate_and_dashboard(fake_scanners, tmp_path):
+    from tokenspecter.sidechannel_engine import generate_stream_corpus
+    from circuitshield.circuit_engine import generate_circuit_corpus
+
+    target = tmp_path / "cyber_range"
+    target.mkdir()
+    generate_stream_corpus(target / "streams")
+    generate_circuit_corpus(target / "circuits")
+
+    dash_html = tmp_path / "pre_dash.html"
+    r_dash = runner.invoke(app, ["dashboard", str(target), "--html", str(dash_html)])
+    assert r_dash.exit_code == 0, r_dash.output
+    assert dash_html.exists()
+    assert "Unified 11-Module AI Security Command Center" in dash_html.read_text(encoding="utf-8")
+
+    rem_html = tmp_path / "post_rem.html"
+    r_rem = runner.invoke(app, ["remediate", str(target), "--html", str(rem_html)])
+    assert r_rem.exit_code == 0, r_rem.output
+    assert "remediated 6 artifact(s)" in r_rem.output
+    assert rem_html.exists()
+
+
+
