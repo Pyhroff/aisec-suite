@@ -22,18 +22,17 @@ Traditional application scanners focus on source code, dependencies, and runtime
 
 The individual scanner packages remain independently versioned and testable. This repository is the **umbrella product**; the scanner packages are installed as optional dependencies.
 
-## Coverage
+## Coverage (12 Specialist Modules across 5 Mathematical Security Planes)
 
-| Surface | Module | Primary capability |
+| Plane / Surface | Module | Primary Mathematical / Security Capability |
 |---|---|---|
-| MCP | mcpaudit *(specialist package)* | Tool poisoning, permission scope, rug pulls, confused-deputy testing |
-| Memory | memsentry *(specialist package)* | Persistent instruction injection, provenance manipulation, goal hijacking |
-| RAG | ragsentry *(specialist package)* | Document injection, hidden payloads, fake remediation, retrieval manipulation |
-| Training data | trainsentry *(specialist package)* | Fine-tuning poisoning, trigger patterns, goal hijacking, duplicate flooding |
-| Supply chain | agent-install-guardrail *(specialist package)* | Pre-install decisions, dependency analysis, policy, SBOM |
-| Agent behavior | loopcheck *(specialist package)* | Duplicate calls, thrashing, stale retries, regression and waste analysis |
-| Package worms | wormsentry *(specialist package)* | Risky install scripts, credential harvesting, self-propagation patterns |
-| Adversarial research | adversagen *(specialist package)* | Adaptive evasion experiments against scanner-style defenses |
+| **Plane 1: Model Weights & Supply Chain** | `weightspecter` v2.0 *(native `--weights`)* | Marchenko-Pastur RMT spectral law, BBP phase-transition outlier spike detection, Tracy-Widom $\text{TW}_1$ $p$-values, blind trigger inversion & surgical rank-1 spike excision |
+| **Plane 1: Fine-Tuning & Supply Chain** | `trainsentry` · `agent-install-guardrail` · `wormsentry` | Fine-tuning dataset poisoning, pre-install dependency SBOM policy, self-propagating package worm detection |
+| **Plane 2: Verifiable Compute** | `attestinfer` v2.0 *(native `--attest`)* | 16-round Rademacher Freivalds matmul prover ($2^{-16}$ soundness), Fiat-Shamir bilinear sumcheck, SHA-256 Merkle activation roots, non-linear RMSNorm/SiLU/Softmax checks & speculative draft fraud detection |
+| **Plane 3: Residual & Refusal Subspace** | `circuitshield` v2.0 *(native `--circuit`)* | Mechanistic refusal-subspace directional ablation ($\cos\theta_l$), Sparse Autoencoder (SAE) monosemantic feature disentanglement, Kalman-filter Crescendo trajectory forecasting & homeostatic clamping |
+| **Plane 4: Protocol, MCP & Memory** | `specprove-sec` *(native `--formal`)* · `mcpaudit` · `memsentry` · `ragsentry` · `loopcheck` | Z3 SMT bounded model checking, unbounded $k$-induction, Houdini invariant synthesis, CEGIS AST auto-patching, Lean 4 proof certificates, MCP tool poisoning, RAG & persistent memory hygiene |
+| **Plane 5: Encrypted Network Wire** | `tokenspecter` v2.0 *(native `--sidechannel`)* | Encrypted SSE token-length & inter-arrival timing Bayesian Viterbi cryptanalysis, speculative-decoding burst entropy & 64-byte constant-rate ring-buffer shaping |
+| **Adversarial Red-Team Layer** | `adversagen` *(specialist CLI)* | Adaptive genetic/white-box evasion experiments against static and runtime defenses |
 
 ## One CLI
 
@@ -44,9 +43,24 @@ pip install "aisec-suite[all]"
 aisec scan .
 aisec scan . --rag ./docs
 aisec scan . --sarif aisec.sarif --json findings.json --fail-on high
-# Run every native module that has a compatible target in the repository
-# (training_data.jsonl, trace.json, pyproject.toml, etc.)
+# Run every native module (MCP, Memory, RAG, Z3 Formal, RMT Weights, Verifiable Compute, Refusal Circuit, SSE Side-Channel)
 aisec scan . --all --sarif aisec.sarif
+```
+
+### Closed-Loop Auto-Remediation, 5-Plane Wargame & Zero-Trust Runtime Guard-Proxy
+
+```bash
+# Automatically repair vulnerable Python ASTs (Z3 CEGIS), .safetensors (BBP excision), .proof.json (FP32 re-attestation), .act.json (homeostatic clamping), and .stream.json (64B shaping)
+aisec remediate . --html reports/aisec-command-center.html
+
+# Launch the Unified 12-Module Command Center HTML5 Dashboard
+aisec dashboard . --html reports/aisec-command-center.html
+
+# Execute the 5-Stage Autonomous Red-vs-Blue Cyber-Range Wargame Simulator
+aisec wargame --html reports/aisec-wargame-arena.html
+
+# Run the sub-millisecond Zero-Trust Runtime Interceptor Sidecar verification suite
+aisec guard-proxy --json reports/guard-proxy-tx.json
 ```
 
 ### Dedicated module commands

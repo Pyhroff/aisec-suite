@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aisec-suite"
-version = "2.1.0"
+version = "2.2.0"
 description = "Unified AI security toolkit for MCP, memory, RAG, training-data, supply-chain, behavioral, package-worm, Z3 formal verification, RMT weight forensics, verifiable inference, SSE side-channels, and mechanistic refusal firewalls."
 readme = "README.md"
 license = { text = "MIT" }

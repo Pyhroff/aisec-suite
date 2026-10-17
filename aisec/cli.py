@@ -437,3 +437,61 @@ def dashboard(
     )
     typer.echo(f"command center dashboard written ({len(findings)} findings) -> {html_out}")
 
+
+@app.command("wargame")
+def wargame(
+    work_dir: pathlib.Path = typer.Option(
+        pathlib.Path("reports/wargame_arena"),
+        "--work-dir",
+        help="Working directory for 5-stage Red-vs-Blue cyber-range artifacts.",
+    ),
+    html_out: pathlib.Path = typer.Option(
+        pathlib.Path("reports/aisec-wargame-arena.html"),
+        "--html",
+        "-o",
+        help="Output path for the interactive 5-Plane Red-vs-Blue Wargame HTML5 Arena.",
+    ),
+    json_out: Optional[pathlib.Path] = typer.Option(None, "--json", help="Write JSON campaign report."),
+) -> None:
+    """Run the 5-Stage Autonomous Red-vs-Blue Cyber-Range Wargame Simulator across all 5 mathematical planes."""
+    from dataclasses import asdict
+    from aisec.wargame import export_wargame_html, run_five_plane_wargame
+
+    report = run_five_plane_wargame(work_dir.resolve())
+    export_wargame_html(report, html_out.resolve())
+    if json_out is not None:
+        json_out.parent.mkdir(parents=True, exist_ok=True)
+        json_out.write_text(json.dumps(asdict(report), indent=2), encoding="utf-8")
+
+    typer.echo(
+        f"wargame campaign={report.campaign_id} | stages={report.stages_intercepted}/{report.total_stages} blocked | "
+        f"blue_survival={report.blue_team_survival_prob*100:.1f}% | latency={report.total_latency_ms}ms"
+    )
+    for s in report.stages:
+        typer.echo(
+            f"  [Stage {s.stage_num}] {s.plane_name} :: {s.red_attack_name} -> {s.blue_interception_verdict}"
+        )
+    typer.echo(f"wargame arena HTML written -> {html_out}")
+
+
+@app.command("guard-proxy")
+def guard_proxy(
+    json_out: Optional[pathlib.Path] = typer.Option(None, "--json", help="Write Guard-Proxy transaction log as JSON."),
+) -> None:
+    """Run the Zero-Trust Runtime Interceptor Sidecar verification suite across v2.0 mathematical hooks."""
+    from dataclasses import asdict
+    from aisec.wargame import ZeroTrustGuardProxy
+
+    proxy = ZeroTrustGuardProxy()
+    txs = proxy.inspect_and_shape_all()
+    if json_out is not None:
+        json_out.parent.mkdir(parents=True, exist_ok=True)
+        json_out.write_text(json.dumps([asdict(t) for t in txs], indent=2), encoding="utf-8")
+
+    typer.echo(f"guard-proxy inspected {len(txs)} live runtime transaction(s):")
+    for t in txs:
+        typer.echo(
+            f"  [{t.tx_id}] {t.endpoint} | {t.verdict} | {t.action_taken} ({t.latency_ms}ms)"
+        )
+
+
