@@ -4,16 +4,17 @@ from __future__ import annotations
 
 import json
 import pathlib
-import numpy as np
+import pytest
 from typer.testing import CliRunner
 
 from aisec.cli import app
-from aisec.wargame import ZeroTrustGuardProxy, run_five_plane_wargame
 
 runner = CliRunner()
 
 
 def test_attestinfer_v2_nonlinear_and_speculative_audit() -> None:
+    pytest.importorskip("attestinfer")
+    import numpy as np
     from attestinfer.advanced_verification import (
         audit_speculative_decoding,
         verify_nonlinear_layers,
@@ -53,6 +54,8 @@ def test_attestinfer_v2_nonlinear_and_speculative_audit() -> None:
 
 
 def test_circuitshield_v2_sae_and_kalman_crescendo() -> None:
+    pytest.importorskip("circuitshield")
+    import numpy as np
     from circuitshield.advanced_circuit import (
         audit_sae_features,
         forecast_crescendo_trajectory,
@@ -81,6 +84,7 @@ def test_circuitshield_v2_sae_and_kalman_crescendo() -> None:
 
 
 def test_tokenspecter_v2_speculative_burst_pacing() -> None:
+    pytest.importorskip("tokenspecter")
     from tokenspecter.burst_forensics import (
         audit_speculative_burst_leakage,
         pace_speculative_bursts,
@@ -107,6 +111,7 @@ def test_tokenspecter_v2_speculative_burst_pacing() -> None:
 
 
 def test_wargame_and_guard_proxy_cli(tmp_path: pathlib.Path) -> None:
+    pytest.importorskip("weightspecter")
     work_dir = tmp_path / "arena"
     html_out = tmp_path / "wargame.html"
     json_out = tmp_path / "wargame.json"

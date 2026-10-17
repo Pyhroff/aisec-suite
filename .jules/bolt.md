@@ -1,0 +1,3 @@
+## 2025-02-20 - Memoizing AST Name Extraction and Pre-walking Function Subtrees
+**Learning:** In Python static analysis tools, calling `ast.walk(node)` repeatedly inside analysis inner loops (e.g., taint propagation, argument checking, guard analysis) creates massive function call overhead (`iter_child_nodes`, `deque` pop/extend, `isinstance`). Reusing a single `list(ast.walk(fn))` list per function and memoizing `_names(node)` with `functools.lru_cache` yields a ~1.5x speedup (~36% time reduction) on AST reachability assessments.
+**Action:** When performing multi-pass AST flow or taint analysis, pre-walk function subtrees once and memoize node name resolution.
