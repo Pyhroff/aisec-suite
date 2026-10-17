@@ -17,6 +17,7 @@ _HELP = {
     "weightspecter": "https://github.com/Pyhroff/weightspecter",
     "tokenspecter": "https://github.com/Pyhroff/tokenspecter",
     "circuitshield": "https://github.com/Pyhroff/circuitshield",
+    "attestinfer": "https://github.com/Pyhroff/attestinfer",
 }
 
 
