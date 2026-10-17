@@ -14,6 +14,7 @@ _HELP = {
     "memsentry": "https://github.com/Pyhroff/aisec-suite",
     "ragsentry": "https://github.com/Pyhroff/aisec-suite",
     "specprove": "https://github.com/Pyhroff/specprove-sec",
+    "weightspecter": "https://github.com/Pyhroff/weightspecter",
 }
 
 

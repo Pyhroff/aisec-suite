@@ -152,3 +152,51 @@ def scan_specprove_formal(
         for fh in formal_hits
     ]
 
+
+def scan_weightspecter_checkpoints(
+    root: pathlib.Path,
+    include_tests: bool = False,
+    warnings: list[str] | None = None,
+) -> list[Finding]:
+    """Run WeightSpecter RMT Spectral & Topological Backdoor Detector over `.safetensors` checkpoints."""
+    try:
+        from weightspecter.spectral_engine import SpectralBackdoorAnalyzer
+    except ImportError:
+        if warnings is not None:
+            warnings.append("weightspecter not installed: skipped RMT spectral .safetensors backdoor checks")
+        return []
+    analyzer = SpectralBackdoorAnalyzer()
+    out: list[Finding] = []
+    for p in _walk(root):
+        if p.suffix != ".safetensors":
+            continue
+        if not include_tests and any(part in ("tests", "sanitized") for part in p.parts):
+            continue
+        rep = analyzer.scan_checkpoint(p)
+        if rep.overall_verdict == "CLEAN":
+            continue
+        for lp in rep.layer_profiles:
+            if lp.verdict == "CLEAN":
+                continue
+            sev = "critical" if lp.verdict == "BACKDOOR_TROJAN" else "high"
+            out.append(
+                Finding(
+                    scanner="weightspecter",
+                    rule=f"rmt_spectral_backdoor: {lp.layer_name}",
+                    severity=sev,
+                    message=(
+                        f"BBP Spike={lp.bbp_spike_ratio}x, Top1 Energy={lp.top1_energy_fraction*100:.1f}%, "
+                        f"EffRank={lp.effective_entropy_rank}/{lp.nominal_rank}, "
+                        f"MaxIPR={max(lp.u1_ipr_normalized, lp.v1_ipr_normalized):.2f}"
+                    ),
+                    file=_rel(p, root),
+                    line=1,
+                    evidence=" | ".join(lp.detected_signatures),
+                    confidence=round(min(1.0, rep.overall_risk_score / 100.0), 2),
+                    target=lp.layer_name,
+                    remediation=f"weightspecter sanitize {_rel(p, root)} -o sanitized_{p.name}",
+                )
+            )
+    return out
+
+
