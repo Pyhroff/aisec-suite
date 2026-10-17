@@ -1,0 +1,41 @@
+[
+  {
+    "scanner": "ragsentry",
+    "rule": "retrieval_manipulation: Possible keyword stuffing for retrieval manipulation",
+    "severity": "medium",
+    "message": "Paragraph starting at line 1 repeats the term 'pytest' 12 times out of 31 content words (39%), far past what normal prose produces. This pattern can be used to bias embedding-similarity retrieval toward matching this chunk for many unrelated queries containing that term.",
+    "file": ".ruff_cache/0.17.1/16950175922841796309",
+    "line": 1,
+    "evidence": "",
+    "confidence": 1.0,
+    "target": "",
+    "remediation": "",
+    "fingerprint": "099485e3e4af7e4347d266be1d109ba2"
+  },
+  {
+    "scanner": "ragsentry",
+    "rule": "retrieval_manipulation: Possible keyword stuffing for retrieval manipulation",
+    "severity": "medium",
+    "message": "Paragraph starting at line 1 repeats the term 'qom' 9 times out of 30 content words (30%), far past what normal prose produces. This pattern can be used to bias embedding-similarity retrieval toward matching this chunk for many unrelated queries containing that term.",
+    "file": ".ruff_cache/0.17.1/4782715922695141748",
+    "line": 1,
+    "evidence": "",
+    "confidence": 1.0,
+    "target": "",
+    "remediation": "",
+    "fingerprint": "372dd8b10939ff528e25beeea11578d6"
+  },
+  {
+    "scanner": "ragsentry",
+    "rule": "retrieval_manipulation: Possible keyword stuffing for retrieval manipulation",
+    "severity": "medium",
+    "message": "Paragraph starting at line 496 repeats the term 'div' 40 times out of 128 content words (31%), far past what normal prose produces. This pattern can be used to bias embedding-similarity retrieval toward matching this chunk for many unrelated queries containing that term.",
+    "file": "aisec/wargame.py",
+    "line": 496,
+    "evidence": "",
+    "confidence": 1.0,
+    "target": "",
+    "remediation": "",
+    "fingerprint": "cc2a3f1825e117901ad10fa700ca3793"
+  }
+]

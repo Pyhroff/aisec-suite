@@ -31,7 +31,7 @@ def test_clean_repo_passes(tmp_path):
     (tmp_path / "README.md").write_text("hello")
     r = runner.invoke(app, ["scan", str(tmp_path), "--fail-on", "low"])
     assert r.exit_code == 0, r.output
-    assert "no MCP tools were found" in r.output
+    assert "tools extracted: 0" in r.output
 
 
 def test_context_file_scanned_by_memsentry(tmp_path):
