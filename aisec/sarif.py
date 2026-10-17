@@ -15,6 +15,8 @@ _HELP = {
     "ragsentry": "https://github.com/Pyhroff/aisec-suite",
     "specprove": "https://github.com/Pyhroff/specprove-sec",
     "weightspecter": "https://github.com/Pyhroff/weightspecter",
+    "tokenspecter": "https://github.com/Pyhroff/tokenspecter",
+    "circuitshield": "https://github.com/Pyhroff/circuitshield",
 }
 
 

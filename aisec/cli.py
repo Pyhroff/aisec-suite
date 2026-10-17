@@ -10,11 +10,13 @@ import typer
 
 from aisec import __version__
 from aisec.adapters import (
+    scan_circuitshield_traces,
     scan_context_files,
     scan_manifest_files,
     scan_mcp_source,
     scan_rag_dir,
     scan_specprove_formal,
+    scan_tokenspecter_streams,
     scan_weightspecter_checkpoints,
 )
 from aisec.benchmark import load_metrics, run_range
@@ -99,7 +101,7 @@ def _emit(findings: list, *, json_out: Optional[pathlib.Path], sarif: Optional[p
 @app.command()
 def scan(
     path: pathlib.Path = typer.Argument(..., exists=True, file_okay=False, help="Repository root to scan."),
-    only: Optional[str] = typer.Option(None, "--only", help="Comma-separated modules: mcp,memory,rag,training,behavior,supply-chain,worm,formal,weights."),
+    only: Optional[str] = typer.Option(None, "--only", help="Comma-separated modules: mcp,memory,rag,training,behavior,supply-chain,worm,formal,weights,sidechannel,circuit."),
     all_modules: bool = typer.Option(False, "--all", help="Run every native suite module against the repository where applicable."),
     rag: Optional[pathlib.Path] = typer.Option(None, "--rag", help="Directory of RAG source documents."),
     sarif: Optional[pathlib.Path] = typer.Option(None, "--sarif", help="Write SARIF 2.1.0 here."),
@@ -112,6 +114,8 @@ def scan(
     formal: bool = typer.Option(False, "--formal/--no-formal", help="Run SpecProve-Sec Z3 SMT formal state-machine verification & CEGIS patch prover."),
     lean_out: Optional[pathlib.Path] = typer.Option(None, "--lean-out", help="Directory to export Lean 4 formal proof certificates when --formal is enabled."),
     weights: bool = typer.Option(False, "--weights/--no-weights", help="Run WeightSpecter RMT spectral & topological LoRA/safetensors backdoor detector."),
+    sidechannel: bool = typer.Option(False, "--sidechannel/--no-sidechannel", help="Run TokenSpecter encrypted streaming SSE Viterbi side-channel auditor."),
+    circuit: bool = typer.Option(False, "--circuit/--no-circuit", help="Run CircuitShield mechanistic interpretability refusal-subspace firewall."),
     baseline: Optional[pathlib.Path] = typer.Option(None, "--baseline", help="Accepted finding fingerprints."),
     write_baseline: Optional[pathlib.Path] = typer.Option(None, "--write-baseline", help="Accept all current findings."),
     summary: Optional[pathlib.Path] = typer.Option(None, "--summary", help="Write Markdown summary."),
@@ -147,15 +151,20 @@ def scan(
         selected.add("formal")
     if weights:
         selected.add("weights")
+    if sidechannel:
+        selected.add("sidechannel")
+    if circuit:
+        selected.add("circuit")
     if all_modules and only:
         raise typer.BadParameter("--all cannot be combined with --only")
     if all_modules and rag is None:
         rag = root
+    all_set = {"mcp", "memory", "rag", "training", "behavior", "supply-chain", "worm", "formal", "weights", "sidechannel", "circuit"}
     if all_modules:
-        selected = {"mcp", "memory", "rag", "training", "behavior", "supply-chain", "worm", "formal", "weights"}
+        selected = set(all_set)
     if only:
         requested = {x.strip() for x in only.split(",") if x.strip()}
-        unknown = requested - {"mcp", "memory", "rag", "training", "behavior", "supply-chain", "worm", "formal", "weights"}
+        unknown = requested - all_set
         if unknown:
             raise typer.BadParameter("unsupported modules: " + ", ".join(sorted(unknown)))
         selected = requested
@@ -176,6 +185,10 @@ def scan(
         findings += guarded("specprove (z3-smt)", scan_specprove_formal, [], root, include_tests, warnings, lean_out)
     if "weights" in selected:
         findings += guarded("weightspecter (rmt)", scan_weightspecter_checkpoints, [], root, include_tests, warnings)
+    if "sidechannel" in selected:
+        findings += guarded("tokenspecter (viterbi)", scan_tokenspecter_streams, [], root, include_tests, warnings)
+    if "circuit" in selected:
+        findings += guarded("circuitshield (subspace)", scan_circuitshield_traces, [], root, include_tests, warnings)
     if "training" in selected:
         dataset = root / "training_data.jsonl"
         if dataset.is_file():
@@ -348,3 +361,71 @@ def benchmark(
                 f"fpr={metrics['false_positive_rate']:.4f}"
             )
     raise typer.Exit(code)
+
+
+@app.command("remediate")
+def remediate(
+    path: pathlib.Path = typer.Argument(..., exists=True, file_okay=False, help="Repository root to auto-remediate."),
+    html_out: Optional[pathlib.Path] = typer.Option(None, "--html", help="Write Command Center HTML5 report after remediation."),
+) -> None:
+    """Run closed-loop mathematical auto-remediation across Python ASTs, .safetensors weights, .stream.json, and .act.json."""
+    from aisec.command_center import (
+        generate_unified_command_center_html,
+        remediate_repository,
+    )
+
+    root = path.resolve()
+    rem = remediate_repository(root)
+    typer.echo(f"remediated {len(rem.actions)} artifact(s) under {root}")
+    for act in rem.actions:
+        typer.echo(f"  [{act.scanner}] {act.target_file}: {act.pre_status} -> {act.post_status} ({act.action_type})")
+
+    if html_out is not None:
+        warnings: list[str] = []
+        post_findings = (
+            scan_specprove_formal(root, warnings=warnings)
+            + scan_weightspecter_checkpoints(root, warnings=warnings)
+            + scan_tokenspecter_streams(root, warnings=warnings)
+            + scan_circuitshield_traces(root, warnings=warnings)
+        )
+        html_out.parent.mkdir(parents=True, exist_ok=True)
+        html_out.write_text(
+            generate_unified_command_center_html(post_findings, rem),
+            encoding="utf-8",
+        )
+        typer.echo(f"command center HTML written -> {html_out}")
+
+
+@app.command("dashboard")
+def dashboard(
+    path: pathlib.Path = typer.Argument(..., exists=True, file_okay=False, help="Repository root to audit."),
+    html_out: pathlib.Path = typer.Option(
+        pathlib.Path("reports/aisec-command-center.html"),
+        "--html",
+        "-o",
+        help="Output path for the Unified 11-Module Command Center HTML5 dashboard.",
+    ),
+    include_tests: bool = typer.Option(False, "--include-tests", help="Include test/sample directories."),
+) -> None:
+    """Generate the Unified 11-Module AI Security Command Center HTML5 Dashboard."""
+    from aisec.command_center import generate_unified_command_center_html
+
+    root = path.resolve()
+    warnings: list[str] = []
+    mcp_findings, _ = scan_mcp_source(root, include_tests, warnings)
+    findings = (
+        list(mcp_findings)
+        + scan_manifest_files(root, warnings)
+        + scan_context_files(root, warnings)
+        + scan_specprove_formal(root, include_tests, warnings)
+        + scan_weightspecter_checkpoints(root, include_tests, warnings)
+        + scan_tokenspecter_streams(root, include_tests, warnings)
+        + scan_circuitshield_traces(root, include_tests, warnings)
+    )
+    html_out.parent.mkdir(parents=True, exist_ok=True)
+    html_out.write_text(
+        generate_unified_command_center_html(findings, None),
+        encoding="utf-8",
+    )
+    typer.echo(f"command center dashboard written ({len(findings)} findings) -> {html_out}")
+

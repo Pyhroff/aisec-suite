@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>aisec-suite v2.0.0 — Unified 11-Module AI Security Command Center</title>
+<style>
+  :root {
+    --bg: #070a12;
+    --panel: #0f1626;
+    --panel2: #162038;
+    --border: #263659;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --accent: #38bdf8;
+    --green: #22c55e;
+    --red: #f43f5e;
+    --amber: #f59e0b;
+    --purple: #a855f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 24px; }
+  .hero {
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #0f172a 100%);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+  }
+  .hero h1 { font-size: 22px; color: #f8fafc; }
+  .hero p { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 20px; }
+  .kpi { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; }
+  .kpi .l { font-size: 11px; text-transform: uppercase; color: var(--muted); }
+  .kpi .v { font-size: 24px; font-weight: 700; margin-top: 4px; color: var(--accent); }
+  .card { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+  .card h2 { font-size: 16px; margin-bottom: 12px; color: #f8fafc; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: left; }
+  th { background: var(--panel2); color: var(--muted); font-size: 11px; text-transform: uppercase; }
+  .pill { padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+  .pill.critical, .pill.high { background: rgba(244,63,94,0.18); color: var(--red); border: 1px solid rgba(244,63,94,0.4); }
+  .pill.medium { background: rgba(245,158,11,0.18); color: var(--amber); }
+  .pill.clean { background: rgba(34,197,94,0.18); color: var(--green); border: 1px solid rgba(34,197,94,0.4); }
+</style>
+</head>
+<body>
+<div class="hero">
+  <div>
+    <h1>aisec-suite v2.0.0 — Unified 11-Module AI Security Command Center</h1>
+    <p>Correlating Static MCP/RAG/Memory Hygiene &bull; Z3 SMT Formal Verification (SpecProve-Sec) &bull; RMT Spectral Weight Forensics (WeightSpecter v2.0) &bull; Viterbi Side-Channel Cryptanalysis (TokenSpecter) &bull; Mechanistic Refusal Firewall (CircuitShield)</p>
+  </div>
+  <div><span class="pill clean" style="font-size:12px;padding:6px 14px;">11 Specialist Scanners Active</span></div>
+</div>
+
+<div class="kpis" id="kpi-bar"></div>
+
+<div class="card">
+  <h2>Multi-Layer Agentic Kill-Chain Architecture &amp; Defense Planes</h2>
+  <svg viewBox="0 0 960 150" style="width:100%;height:150px;background:#090d18;border-radius:10px;border:1px solid #1e293b;">
+    <defs>
+      <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#38bdf8"/>
+      </marker>
+    </defs>
+    <rect x="20" y="35" width="160" height="80" rx="8" fill="#162038" stroke="#38bdf8" stroke-width="1.5"/>
+    <text x="100" y="65" fill="#f8fafc" font-size="12" font-weight="700" text-anchor="middle">1. Data &amp; Weights</text>
+    <text x="100" y="85" fill="#94a3b8" font-size="10" text-anchor="middle">WeightSpecter v2 (RMT/TW1)</text>
+    <text x="100" y="100" fill="#94a3b8" font-size="10" text-anchor="middle">TrainSentry / RagSentry</text>
+
+    <line x1="180" y1="75" x2="250" y2="75" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <rect x="255" y="35" width="180" height="80" rx="8" fill="#162038" stroke="#a855f7" stroke-width="1.5"/>
+    <text x="345" y="65" fill="#f8fafc" font-size="12" font-weight="700" text-anchor="middle">2. Residual Subspace</text>
+    <text x="345" y="85" fill="#d8b4fe" font-size="10" text-anchor="middle">CircuitShield Firewall</text>
+    <text x="345" y="100" fill="#94a3b8" font-size="10" text-anchor="middle">Homeostatic Refusal Clamp</text>
+
+    <line x1="435" y1="75" x2="505" y2="75" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <rect x="510" y="35" width="190" height="80" rx="8" fill="#162038" stroke="#22c55e" stroke-width="1.5"/>
+    <text x="605" y="65" fill="#f8fafc" font-size="12" font-weight="700" text-anchor="middle">3. Protocol &amp; MCP Gate</text>
+    <text x="605" y="85" fill="#86efac" font-size="10" text-anchor="middle">SpecProve-Sec (Z3 + Lean 4)</text>
+    <text x="605" y="100" fill="#94a3b8" font-size="10" text-anchor="middle">MCPAudit + LoopCheck</text>
+
+    <line x1="700" y1="75" x2="765" y2="75" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow)"/>
+
+    <rect x="770" y="35" width="170" height="80" rx="8" fill="#162038" stroke="#f59e0b" stroke-width="1.5"/>
+    <text x="855" y="65" fill="#f8fafc" font-size="12" font-weight="700" text-anchor="middle">4. Encrypted Wire</text>
+    <text x="855" y="85" fill="#fcd34d" font-size="10" text-anchor="middle">TokenSpecter (Viterbi)</text>
+    <text x="855" y="100" fill="#94a3b8" font-size="10" text-anchor="middle">64B Constant-Rate Shaper</text>
+  </svg>
+</div>
+
+<div class="card" id="rem-card" style="display:none;">
+  <h2>Closed-Loop Mathematical Auto-Remediation Ledger (`aisec remediate`)</h2>
+  <table>
+    <thead><tr><th>Scanner</th><th>Target Artifact</th><th>Remediation Engine</th><th>Pre-State</th><th>Post-State</th><th>Mathematical Proof / Detail</th></tr></thead>
+    <tbody id="rem-body"></tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2>Unified Multi-Scanner Findings Table</h2>
+  <table>
+    <thead><tr><th>Severity</th><th>Scanner</th><th>Location</th><th>Rule</th><th>Message &amp; Mathematical Evidence</th><th>Suggested Remediation</th></tr></thead>
+    <tbody id="findings-body"></tbody>
+  </table>
+</div>
+
+<script>
+const FINDINGS = [{"scanner": "specprove", "rule": "MCP-01: NoConfusedDeputyPrivilegeEscalation (CWE-441)", "severity": "critical", "message": "[MCP-01] MCP Confused-Deputy Ambient Authority Escalation in `dispatch_mcp_admin_tool()`: Checks `orchestrator.ambient_cap >= req.required_cap` without intersecting `req.caller_bound_cap`. Z3 disproved `NoConfusedDeputyPrivilegeEscalation` at step k=2.", "file": "fixtures/formal/vulnerable_protocol_handlers.py", "line": 9, "evidence": "z3-bmc: SAT at depth k=2 (25.0ms) | trace: [Step 1: queue_delegated_tool_call({'requested_cap': 7}) => ['pending_req_cap', 'req_queued'] -> Step 2: mcp_server_dispatch_admin_sink({}) => ['req_queued', 'admin_sink_executed']] | cegis-patch: EnforceCallerCapabilityAttestation -> PROVED_INDUCTIVE (ALL k in [0, inf))", "confidence": 1.0, "target": "MCP-01", "remediation": "- if orchestrator.ambient_cap >= req.required_cap:\n+ if min(orchestrator.ambient_cap, req.caller_bound_cap) >= req.required_cap:", "fingerprint": "9f98f1b494fa255067ca15e65f015e4f"}, {"scanner": "specprove", "rule": "MCP-02: ImmutableToolSchemaIntegrity (CWE-345)", "severity": "high", "message": "[MCP-02] Dynamic MCP Tool Shadowing & Post-Approval Rug-Pull in `execute_registered_mcp_tool()`: Dispatches MCP tool on `tool.user_approved` without verifying `sha256(tool.live_schema) == tool.pinned_schema_hash`. Z3 disproved `ImmutableToolSchemaIntegrity` at step k=3.", "file": "fixtures/formal/vulnerable_protocol_handlers.py", "line": 16, "evidence": "z3-bmc: SAT at depth k=3 (37.46ms) | trace: [Step 1: user_approve_mcp_manifest({}) => ['user_approved'] -> Step 2: remote_mcp_hot_mutate_schema({'malicious_hash': 1002}) => ['live_server_schema_hash'] -> Step 3: agent_invoke_registered_tool({}) => ['tool_invoked', 'executed_schema_hash']] | cegis-patch: CryptographicSchemaPinCheck -> PROVED_INDUCTIVE (ALL k in [0, inf))", "confidence": 1.0, "target": "MCP-02", "remediation": "- if tool.user_approved:\n+ if tool.user_approved and sha256(tool.live_schema) == tool.pinned_schema_hash:", "fingerprint": "97db14fff66e169215a873b243da1e8c"}, {"scanner": "specprove", "rule": "ZTA-01: StrictZeroTrustAudienceBinding (CWE-287)", "severity": "critical", "message": "[ZTA-01] Zero-Trust OAuth 2.1 Cross-Service JWT Audience Relay in `verify_zero_trust_vault_request()`: Calls `jwt.decode(...)` without enforcing strict `audience=` binding against cross-service token relay. Z3 disproved `StrictZeroTrustAudienceBinding` at step k=2.", "file": "fixtures/formal/vulnerable_protocol_handlers.py", "line": 25, "evidence": "z3-bmc: SAT at depth k=2 (12.95ms) | trace: [Step 1: idp_issue_low_tier_jwt({}) => ['jwt_sig_valid', 'jwt_aud', 'token_issued_to_attacker'] -> Step 2: attacker_relay_jwt_to_vault({}) => ['vault_access_granted']] | cegis-patch: EnforceJwtAudienceClaimMatch -> PROVED_INDUCTIVE (ALL k in [0, inf))", "confidence": 1.0, "target": "ZTA-01", "remediation": "- claims = jwt.decode(token, IDP_PUBKEY, algorithms=['EdDSA'])\n+ claims = jwt.decode(token, IDP_PUBKEY, algorithms=['EdDSA'], audience=VAULT_SERVICE_ID)", "fingerprint": "90e27017358d87ba7b9ea375c980cf7b"}, {"scanner": "weightspecter", "rule": "rmt_spectral_backdoor: model.layers.0.self_attn.v_proj", "severity": "critical", "message": "BBP Spike=581.659x, Top1 Energy=98.5%, EffRank=1.123/16, MaxIPR=2.94", "file": "fixtures\\weights\\trojan_lora.safetensors", "line": 1, "evidence": "RMT-BBP-SPIKE: Top eigenvalue exceeds Marchenko-Pastur bulk edge by 581.66x (threshold 3.2x) | RANK1-COLLAPSE: Top-1 singular mode captures 98.5% of Frobenius energy (effective rank=1.12/16)", "confidence": 0.75, "target": "model.layers.0.self_attn.v_proj", "remediation": "weightspecter sanitize fixtures\\weights\\trojan_lora.safetensors -o sanitized_trojan_lora.safetensors", "fingerprint": "dbe93aec9f47a2ff8d38b7b5432af997"}, {"scanner": "weightspecter", "rule": "rmt_spectral_backdoor: model.layers.1.mlp.down_proj", "severity": "critical", "message": "BBP Spike=607.767x, Top1 Energy=98.7%, EffRank=1.112/16, MaxIPR=3.66", "file": "fixtures\\weights\\trojan_lora.safetensors", "line": 1, "evidence": "RMT-BBP-SPIKE: Top eigenvalue exceeds Marchenko-Pastur bulk edge by 607.77x (threshold 3.2x) | RANK1-COLLAPSE: Top-1 singular mode captures 98.7% of Frobenius energy (effective rank=1.11/16)", "confidence": 0.75, "target": "model.layers.1.mlp.down_proj", "remediation": "weightspecter sanitize fixtures\\weights\\trojan_lora.safetensors -o sanitized_trojan_lora.safetensors", "fingerprint": "02f04c9e18c271c7f6a931b185904e60"}, {"scanner": "tokenspecter", "rule": "sse_sidechannel_leakage: medical", "severity": "critical", "message": "Mutual Info=4.79 bits/tok, Viterbi Recovery=100% ('DIAGNOSIS: Stage-IV Glioblastoma EGFR-Mutant')", "file": "fixtures\\sidechannel\\leaky_unshaped.stream.json", "line": 1, "evidence": "H(L)=2.58b, timing_cv=0.300", "confidence": 1.0, "target": "TS-UNSHAPED-01", "remediation": "tokenspecter shape fixtures\\sidechannel\\leaky_unshaped.stream.json -o shaped_leaky_unshaped.stream.json", "fingerprint": "b45d7042d066342de5a56d7dd88de131"}, {"scanner": "circuitshield", "rule": "refusal_subspace_ablation: REFUSAL_ABLATION_ATTACK", "severity": "critical", "message": "Harm=0.82, MinRefusalProj=0.01, MinAttnEntropy=1.40b (4 layers ablated)", "file": "fixtures\\circuit\\ablated_circuit.act.json", "line": 1, "evidence": "Layer 8: Ortho-Ablated Refusal Direction (refusal_proj=0.010 ~ 0 despite harm_score=0.820) | Layer 12: Ortho-Ablated Refusal Direction (refusal_proj=0.010 ~ 0 despite harm_score=0.820)", "confidence": 0.7, "target": "CS-ATTACK-01", "remediation": "circuitshield clamp fixtures\\circuit\\ablated_circuit.act.json -o clamped_ablated_circuit.act.json", "fingerprint": "da14eb665f7f45beab61a1a930fa1275"}];
+const REMEDIATIONS = [];
+
+const scanners = new Set(FINDINGS.map(f => f.scanner));
+const critCount = FINDINGS.filter(f => f.severity === 'critical' || f.severity === 'high').length;
+document.getElementById('kpi-bar').innerHTML = `
+  <div class="kpi"><div class="l">Total Findings</div><div class="v" style="color:${FINDINGS.length ? 'var(--red)' : 'var(--green)'}">${FINDINGS.length}</div></div>
+  <div class="kpi"><div class="l">Critical / High</div><div class="v" style="color:${critCount ? 'var(--red)' : 'var(--green)'}">${critCount}</div></div>
+  <div class="kpi"><div class="l">Scanners Triggered</div><div class="v">${scanners.size}</div></div>
+  <div class="kpi"><div class="l">Auto-Remediations</div><div class="v" style="color:var(--green)">${REMEDIATIONS.length}</div></div>
+  <div class="kpi"><div class="l">Suite Version</div><div class="v">v2.0.0</div></div>
+`;
+
+if (REMEDIATIONS.length > 0) {
+  document.getElementById('rem-card').style.display = 'block';
+  document.getElementById('rem-body').innerHTML = REMEDIATIONS.map(r => `
+    <tr>
+      <td><strong>${r.scanner}</strong></td>
+      <td><code>${r.target_file}</code></td>
+      <td>${r.action_type}</td>
+      <td style="color:var(--red)">${r.pre_status}</td>
+      <td><span class="pill clean">${r.post_status}</span></td>
+      <td>${r.detail}</td>
+    </tr>
+  `).join('');
+}
+
+document.getElementById('findings-body').innerHTML = FINDINGS.length ? FINDINGS.map(f => `
+  <tr>
+    <td><span class="pill ${f.severity}">${f.severity}</span></td>
+    <td><strong>${f.scanner}</strong></td>
+    <td><code>${f.file}:${f.line}</code></td>
+    <td>${f.rule}</td>
+    <td>${f.message} <span style="color:#94a3b8;font-size:11px;">${f.evidence ? '[' + f.evidence + ']' : ''}</span></td>
+    <td><code>${f.remediation || '—'}</code></td>
+  </tr>
+`).join('') : '<tr><td colspan="6" style="text-align:center;color:var(--green);font-weight:700;">0 Findings — All 11 Security Modules Passed!</td></tr>';
+</script>
+</body>
+</html>
