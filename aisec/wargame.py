@@ -196,16 +196,16 @@ def run_five_plane_wargame(work_dir: pathlib.Path) -> WargameCampaignReport:
     # Stage 1: WeightSpecter v2.0 (Supply-Chain LoRA Trojan + Trigger Inversion)
     s0 = time.perf_counter()
     from weightspecter.advanced_forensics import compute_tracy_widom_calibration
-    from weightspecter.spectral_engine import (
-        SpectralBackdoorAnalyzer,
-        generate_synthetic_corpus,
-    )
+    from weightspecter.corpus_generator import generate_benchmark_corpus
+    from weightspecter.spectral_engine import SpectralBackdoorAnalyzer
 
-    ws_paths = generate_synthetic_corpus(work_dir / "wargame_weights")
+    ws_out_dir = work_dir / "wargame_weights"
+    ws_specs = generate_benchmark_corpus(ws_out_dir)
     ws_analyzer = SpectralBackdoorAnalyzer()
-    trojan_p = [p for p in ws_paths if "rank1_trojan" in p.name][0]
+    trojan_spec = [sp for sp in ws_specs if sp.expected_verdict != "CLEAN"][0]
+    trojan_p = ws_out_dir / trojan_spec.filename
     ws_rep = ws_analyzer.scan_checkpoint(trojan_p)
-    ws_san = ws_analyzer.sanitize_checkpoint(trojan_p, work_dir / "wargame_weights" / "healed.safetensors")
+    ws_san = ws_analyzer.sanitize_checkpoint(trojan_p, ws_out_dir / "healed.safetensors")
     tw_cal = compute_tracy_widom_calibration(
         "lora_q_proj", 0.05, 0.20, ws_san.pre_max_bbp_ratio * 0.20, 0.25, 64
     )
