@@ -332,7 +332,7 @@ def run_five_plane_wargame(work_dir: pathlib.Path) -> WargameCampaignReport:
     ts_paths = generate_stream_corpus(work_dir / "wargame_streams")
     ts_auditor = SideChannelVulnerabilityAuditor()
     ts_shaper = ConstantRateStreamShaper()
-    leak_p = [p for p in ts_paths if "aws_credentials" in p.name][0]
+    leak_p = [p for p in ts_paths if "unshaped" in p.name or "leak" in p.name or "clean" not in p.name][0]
     leak_tr = load_stream_trace(leak_p)
     ts_pre = ts_auditor.audit_trace(leak_tr)
     ts_shaped = ts_shaper.shape_trace(leak_tr)
