@@ -21,6 +21,7 @@ REGISTRY = {
     "adversarial": ModuleSpec("adversarial", MODULES["adversarial"], "adversagen", False, "specialist CLI"),
     "worm": ModuleSpec("worm", MODULES["worm"], "wormsentry", True, "worm PATH"),
     "formal": ModuleSpec("formal", MODULES["formal"], "pyhroff-specprove-sec", True, "scan PATH --formal"),
+    "weights": ModuleSpec("weights", MODULES["weights"], "pyhroff-weightspecter", True, "scan PATH --weights"),
 }
 
 def available_modules():

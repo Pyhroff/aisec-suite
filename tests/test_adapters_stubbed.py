@@ -222,3 +222,51 @@ def test_formal_specprove_scanner_integration(fake_scanners, monkeypatch, tmp_pa
     rule_ids = {r["id"] for r in sarif_doc["runs"][0]["tool"]["driver"]["rules"]}
     assert any(rid.startswith("specprove/") for rid in rule_ids)
 
+
+def test_weightspecter_rmt_scanner_integration(fake_scanners, monkeypatch, tmp_path):
+    @dataclass
+    class FakeLayerProfile:
+        layer_name: str = "model.layers.0.self_attn.v_proj"
+        verdict: str = "BACKDOOR_TROJAN"
+        bbp_spike_ratio: float = 607.77
+        top1_energy_fraction: float = 0.96
+        effective_entropy_rank: float = 1.24
+        nominal_rank: int = 16
+        u1_ipr_normalized: float = 88.5
+        v1_ipr_normalized: float = 42.1
+        detected_signatures: list = None
+
+        def __post_init__(self):
+            if self.detected_signatures is None:
+                self.detected_signatures = ["RMT-BBP-SPIKE: 607.77x"]
+
+    @dataclass
+    class FakeCheckpointReport:
+        overall_verdict: str = "TROJAN_DETECTED"
+        overall_risk_score: float = 95.0
+        layer_profiles: list = None
+
+        def __post_init__(self):
+            if self.layer_profiles is None:
+                self.layer_profiles = [FakeLayerProfile()]
+
+    class FakeAnalyzer:
+        def scan_checkpoint(self, path):
+            return FakeCheckpointReport()
+
+    monkeypatch.setitem(sys.modules, "weightspecter", _mod("weightspecter"))
+    monkeypatch.setitem(
+        sys.modules,
+        "weightspecter.spectral_engine",
+        _mod("weightspecter.spectral_engine", SpectralBackdoorAnalyzer=FakeAnalyzer),
+    )
+
+    root, _ = _repo(tmp_path)
+    (root / "poisoned_adapter.safetensors").write_bytes(b"fake_safetensors")
+    out = root / "weights.json"
+    r = runner.invoke(app, ["scan", str(root), "--weights", "--json", str(out)])
+    assert r.exit_code == 0, r.output
+    data = json.loads(out.read_text())
+    assert any(f["scanner"] == "weightspecter" for f in data)
+
+
