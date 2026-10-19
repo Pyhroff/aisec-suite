@@ -15,8 +15,8 @@ classifiers = ["Development Status :: 4 - Beta","Intended Audience :: Developers
 dependencies = ["typer>=0.12"]
 
 [project.optional-dependencies]
-core = ["pyhroff-mcpaudit>=0.7","memsentry>=1.2","pyhroff-ragsentry>=1.1","pyhroff-specprove-sec>=0.4","pyhroff-weightspecter>=2.0","pyhroff-tokenspecter>=1.0","pyhroff-circuitshield>=1.0","pyhroff-attestinfer>=1.0"]
-all = ["pyhroff-mcpaudit>=0.7","memsentry>=1.2","pyhroff-ragsentry>=1.1","agent-install-guardrail>=0.8","trainsentry>=1.1","loopcheck>=0.8","wormsentry>=1.0","pyhroff-specprove-sec>=0.4","pyhroff-weightspecter>=2.0","pyhroff-tokenspecter>=1.0","pyhroff-circuitshield>=1.0","pyhroff-attestinfer>=1.0"]
+core = ["pyhroff-mcpaudit>=0.8.0","memsentry>=1.2","pyhroff-ragsentry>=1.1","pyhroff-specprove-sec>=0.4","pyhroff-weightspecter>=2.0","pyhroff-tokenspecter>=1.0","pyhroff-circuitshield>=1.0","pyhroff-attestinfer>=1.0"]
+all = ["pyhroff-mcpaudit>=0.8.0","memsentry>=1.2","pyhroff-ragsentry>=1.1","agent-install-guardrail>=0.8","trainsentry>=1.1","loopcheck>=0.8","wormsentry>=1.0","pyhroff-specprove-sec>=0.4","pyhroff-weightspecter>=2.0","pyhroff-tokenspecter>=1.0","pyhroff-circuitshield>=1.0","pyhroff-attestinfer>=1.0"]
 future = ["adversagen>=0.1"]
 dev = ["pytest>=8","ruff>=0.5"]
 
