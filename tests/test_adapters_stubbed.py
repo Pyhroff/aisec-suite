@@ -271,6 +271,7 @@ def test_weightspecter_rmt_scanner_integration(fake_scanners, monkeypatch, tmp_p
 
 
 def test_command_center_remediate_and_dashboard(fake_scanners, tmp_path):
+    pytest.importorskip("tokenspecter")
     from tokenspecter.sidechannel_engine import generate_stream_corpus
     from circuitshield.circuit_engine import generate_circuit_corpus
     from attestinfer.attest_engine import generate_proof_corpus

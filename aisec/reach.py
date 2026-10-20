@@ -253,14 +253,19 @@ def assess_python(tool: dict) -> Reach:
         tree = ast.parse(src)
     except Exception:  # SyntaxError, RecursionError, ValueError
         return Reach("unknown")
-    fn = next((n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
-               and n.name == tool.get("handler") and n.lineno == tool.get("line")), None)
-    if fn is None:
-        return Reach("unknown")
+
     params = set(tool.get("input_schema", {}).get("properties", {}))
     if not params:
         return Reach("unknown")
+
+    # BOLT OPTIMIZATION: _Ctx indexes functions once; reuse ctx.funcs to lookup handler in O(1)
+    # avoids redundant ast.walk(tree) call per tool assessment.
     ctx = _Ctx(tree, tool.get("file", "?"))
+    candidates = ctx.funcs.get(tool.get("handler")) or []
+    fn = next((n for n in candidates if n.lineno == tool.get("line")), None)
+    if fn is None:
+        return Reach("unknown")
+
     _walk_fn(fn, params, ctx, 0)
     if ctx.kinds:
         guarded = ctx.kinds <= ctx.guards
