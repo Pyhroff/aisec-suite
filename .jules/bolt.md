@@ -1,4 +1,4 @@
-## 2026-03-29 - Redundant AST Re-Parsing and Full-Tree Traversals in Multi-Tool Reachability Analysis
+## 2026-03-29 - Consolidate Full-Tree Module AST Traversals in Reachability Analysis
 
-**Learning:** When statically evaluating multiple MCP tools per file/module in `reach.assess_python`, re-parsing module source code with `ast.parse(src)` and re-traversing the whole module AST (`ast.walk(tree)`) for every individual tool creates $O(N \cdot M)$ overhead.
-**Action:** Cache module AST parsing and function index generation per source string (`functools.lru_cache`). Reuse pre-indexed function dictionaries to achieve $O(1)$ handler lookups and eliminate redundant AST traversals.
+**Learning:** When statically evaluating MCP tools in `reach.assess_python`, calling `ast.walk(tree)` once to find `fn` and then creating `_Ctx` which calls `ast.walk(tree)` again creates duplicate $O(N)$ AST traversals for every tool in the module.
+**Action:** Instantiate `_Ctx` first (which already builds `ctx.funcs` in a single pass) and perform $O(1)$ handler lookup directly on `ctx.funcs`.
