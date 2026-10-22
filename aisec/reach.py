@@ -91,6 +91,8 @@ def _dotted(n) -> str:
 
 
 def _names(n) -> set[str]:
+    if isinstance(n, ast.Name):
+        return {n.id}
     return {x.id for x in ast.walk(n) if isinstance(x, ast.Name)}
 
 
@@ -104,11 +106,11 @@ def _store_names(t) -> set[str]:
     return set()  # attribute/subscript targets (self.x = ...) deliberately do not taint their base
 
 
-def _propagate(fn, tainted: set[str]) -> set[str]:
+def _propagate(nodes: list[ast.AST], tainted: set[str]) -> set[str]:
     tainted = set(tainted)
     for _ in range(3):
         before = len(tainted)
-        for node in ast.walk(fn):
+        for node in nodes:
             pairs: list[tuple[set[str], ast.AST]] = []
             if isinstance(node, ast.Assign):
                 pairs = [(set().union(*(_store_names(t) for t in node.targets)), node.value)]
@@ -134,13 +136,21 @@ def _is_safe_call(name: str) -> bool:
     return name.rsplit(".", 1)[-1] in _SAFE_METHODS and "." in name
 
 
+_STMT_CONTAINERS = (ast.stmt, ast.Module, ast.match_case, ast.ExceptHandler)
+
+
 class _Ctx:
     def __init__(self, tree: ast.AST, fname: str):
         self.fname = fname
         self.funcs: dict[str, list] = {}
-        for n in ast.walk(tree):
-            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                self.funcs.setdefault(n.name, []).append(n)
+        stack = [tree]
+        while stack:
+            curr = stack.pop()
+            if isinstance(curr, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                self.funcs.setdefault(curr.name, []).append(curr)
+            for child in ast.iter_child_nodes(curr):
+                if isinstance(child, _STMT_CONTAINERS):
+                    stack.append(child)
         self.kinds: set[str] = set()
         self.evidence: list[str] = []
         self.guards: set[str] = set()
@@ -156,9 +166,9 @@ def _arg_tainted(call: ast.Call, tainted: set[str], positions=(0,), kws=("path",
     return any(k.arg in kws and _names(k.value) & tainted for k in call.keywords)
 
 
-def _guards_in(fn, tainted: set[str]) -> set[str]:
+def _guards_in(nodes: list[ast.AST], tainted: set[str]) -> set[str]:
     called, ids = set(), set()
-    for n in ast.walk(fn):
+    for n in nodes:
         if isinstance(n, ast.Call):
             called.add(_dotted(n.func).rsplit(".", 1)[-1])
         if isinstance(n, ast.Attribute):
@@ -186,17 +196,18 @@ def _walk_fn(fn, tainted: set[str], ctx: _Ctx, depth: int) -> None:
     if key in ctx.seen:
         return
     ctx.seen.add(key)
-    if sum(1 for _ in ast.walk(fn)) > MAX_NODES:
+    nodes = list(ast.walk(fn))
+    if len(nodes) > MAX_NODES:
         ctx.unknown = True
         return
-    tainted = _propagate(fn, tainted)
-    ctx.guards |= _guards_in(fn, tainted)
+    tainted = _propagate(nodes, tainted)
+    ctx.guards |= _guards_in(nodes, tainted)
 
     def hit(kind: str, call: ast.Call, label: str) -> None:
         ctx.kinds.add(kind)
         ctx.evidence.append(f"{label}() at {ctx.fname}:{call.lineno}")
 
-    for call in (n for n in ast.walk(fn) if isinstance(n, ast.Call)):
+    for call in (n for n in nodes if isinstance(n, ast.Call)):
         name = _dotted(call.func)
         last = name.rsplit(".", 1)[-1]
         recv = call.func.value if isinstance(call.func, ast.Attribute) else None
@@ -253,14 +264,15 @@ def assess_python(tool: dict) -> Reach:
         tree = ast.parse(src)
     except Exception:  # SyntaxError, RecursionError, ValueError
         return Reach("unknown")
-    fn = next((n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
-               and n.name == tool.get("handler") and n.lineno == tool.get("line")), None)
-    if fn is None:
-        return Reach("unknown")
     params = set(tool.get("input_schema", {}).get("properties", {}))
     if not params:
         return Reach("unknown")
     ctx = _Ctx(tree, tool.get("file", "?"))
+    fn_name = tool.get("handler")
+    line = tool.get("line")
+    fn = next((n for n in ctx.funcs.get(fn_name, []) if getattr(n, "lineno", None) == line), None)
+    if fn is None:
+        return Reach("unknown")
     _walk_fn(fn, params, ctx, 0)
     if ctx.kinds:
         guarded = ctx.kinds <= ctx.guards
