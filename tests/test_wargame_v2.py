@@ -4,11 +4,12 @@ from __future__ import annotations
 
 import json
 import pathlib
-import numpy as np
 import pytest
 from typer.testing import CliRunner
 
 from aisec.cli import app
+
+np = pytest.importorskip("numpy")
 
 runner = CliRunner()
 
