@@ -1,0 +1,3 @@
+## 2026-03-31 - Multi-Pass `ast.walk` Performance Anti-Pattern in Taint Analysis
+**Learning:** AST Taint Analysis in `aisec.reach` previously called `ast.walk(fn)` up to 7 separate times per function (node counting, 3 propagation passes, guard scanning, call extraction) plus additional `ast.walk` calls for each sub-expression. For ASTs with hundreds of nodes, this created quadratic $O(N^2)$ traversal overhead.
+**Action:** When performing static AST analysis, walk the AST once into structured collections (assignments, calls, identifiers, comparisons) and pre-evaluate node leaf helpers (like `_names`) to eliminate redundant tree walks.
