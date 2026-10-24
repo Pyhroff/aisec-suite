@@ -4,11 +4,18 @@ from __future__ import annotations
 
 import json
 import pathlib
-import numpy as np
+
+import pytest
 from typer.testing import CliRunner
 
 from aisec.cli import app
-from aisec.wargame import ZeroTrustGuardProxy, run_five_plane_wargame
+
+try:
+    import numpy as np
+except ImportError:
+    np = None  # type: ignore
+
+pytestmark = pytest.mark.skipif(np is None, reason="numpy is required for wargame v2 tests")
 
 runner = CliRunner()
 
