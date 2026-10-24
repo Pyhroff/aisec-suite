@@ -1,0 +1,3 @@
+## 2025-05-18 - Pruning directory traversal and pre-filtering AST parses
+**Learning:** `pathlib.Path.rglob("*")` visits every single file and directory in a tree (including `node_modules`, `.git`, `venv`) before filters can be applied. Using `os.walk()` with in-place `dirnames` pruning prevents descending into skipped directories entirely. Additionally, pre-filtering file content with a fast case-insensitive string search (`"tool" not in text.lower()`) before running `ast.parse()` avoids expensive AST parsing on non-tool Python files.
+**Action:** Use `os.walk` with in-place `dirnames` mutation for directory traversals when skipping large directories, and apply cheap substring pre-checks before running expensive parsers like `ast.parse`.
