@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import json
 import pathlib
-import numpy as np
+import pytest
+try:
+    import numpy as np
+except ImportError:
+    np = None
 from typer.testing import CliRunner
 
 from aisec.cli import app
@@ -13,6 +17,8 @@ runner = CliRunner()
 
 
 def test_attestinfer_v2_nonlinear_and_speculative_audit() -> None:
+    if np is None:
+        pytest.skip("numpy not installed")
     from attestinfer.advanced_verification import (
         audit_speculative_decoding,
         verify_nonlinear_layers,
@@ -52,6 +58,8 @@ def test_attestinfer_v2_nonlinear_and_speculative_audit() -> None:
 
 
 def test_circuitshield_v2_sae_and_kalman_crescendo() -> None:
+    if np is None:
+        pytest.skip("numpy not installed")
     from circuitshield.advanced_circuit import (
         audit_sae_features,
         forecast_crescendo_trajectory,
@@ -80,6 +88,8 @@ def test_circuitshield_v2_sae_and_kalman_crescendo() -> None:
 
 
 def test_tokenspecter_v2_speculative_burst_pacing() -> None:
+    if np is None:
+        pytest.skip("numpy not installed")
     from tokenspecter.burst_forensics import (
         audit_speculative_burst_leakage,
         pace_speculative_bursts,
@@ -106,6 +116,8 @@ def test_tokenspecter_v2_speculative_burst_pacing() -> None:
 
 
 def test_wargame_and_guard_proxy_cli(tmp_path: pathlib.Path) -> None:
+    if np is None:
+        pytest.skip("numpy not installed")
     work_dir = tmp_path / "arena"
     html_out = tmp_path / "wargame.html"
     json_out = tmp_path / "wargame.json"
