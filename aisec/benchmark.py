@@ -11,12 +11,13 @@ from aisec.metrics import evaluate
 
 def run_range(range_dir: Path, metrics_json: Path | None = None) -> tuple[int, str]:
     """Run an agent-test-range checkout using its own CI harness."""
+    range_dir = range_dir.resolve()
     script = range_dir / "scripts" / "run_range.py"
     if not script.is_file():
         raise FileNotFoundError(f"benchmark harness not found: {script}")
     cmd = [sys.executable, str(script)]
     if metrics_json:
-        cmd += ["--metrics-json", str(metrics_json)]
+        cmd += ["--metrics-json", str(metrics_json.resolve())]
     proc = subprocess.run(cmd, cwd=range_dir, capture_output=True, text=True)
     return proc.returncode, proc.stdout + proc.stderr
 
