@@ -4,14 +4,15 @@ from __future__ import annotations
 
 import json
 import pathlib
-import numpy as np
+import pytest
 from typer.testing import CliRunner
 
 from aisec.cli import app
 # wargame imported within test cases as needed
 
-runner = CliRunner()
+np = pytest.importorskip("numpy")
 
+runner = CliRunner()
 
 def test_attestinfer_v2_nonlinear_and_speculative_audit() -> None:
     from attestinfer.advanced_verification import (

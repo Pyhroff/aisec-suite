@@ -19,7 +19,7 @@ core = ["pyhroff-mcpaudit>=0.7", "memsentry>=1.2", "pyhroff-ragsentry>=1.1"]
 extended = ["pyhroff-mcpaudit>=0.7", "memsentry>=1.2", "pyhroff-ragsentry>=1.1", "pyhroff-specprove-sec>=0.4", "pyhroff-weightspecter>=2.0", "pyhroff-tokenspecter>=1.0", "pyhroff-circuitshield>=1.0", "pyhroff-attestinfer>=1.0"]
 all = ["pyhroff-mcpaudit>=0.7","memsentry>=1.2","pyhroff-ragsentry>=1.1","agent-install-guardrail>=0.8","trainsentry>=1.1","loopcheck>=0.8","wormsentry>=1.0","pyhroff-specprove-sec>=0.4","pyhroff-weightspecter>=2.0","pyhroff-tokenspecter>=1.0","pyhroff-circuitshield>=1.0","pyhroff-attestinfer>=1.0"]
 future = ["adversagen>=0.1"]
-dev = ["pytest>=8","ruff>=0.5"]
+dev = ["pytest>=8", "ruff>=0.5", "numpy>=1.22"]
 
 [project.urls]
 Homepage = "https://github.com/Pyhroff/aisec-suite"
