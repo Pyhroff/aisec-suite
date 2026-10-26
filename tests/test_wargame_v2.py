@@ -14,6 +14,11 @@ np = pytest.importorskip("numpy")
 
 runner = CliRunner()
 
+pytest.importorskip("weightspecter")
+pytest.importorskip("attestinfer")
+pytest.importorskip("circuitshield")
+pytest.importorskip("tokenspecter")
+
 def test_attestinfer_v2_nonlinear_and_speculative_audit() -> None:
     from attestinfer.advanced_verification import (
         audit_speculative_decoding,
