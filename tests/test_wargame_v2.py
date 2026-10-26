@@ -8,7 +8,7 @@ import numpy as np
 from typer.testing import CliRunner
 
 from aisec.cli import app
-from aisec.wargame import ZeroTrustGuardProxy, run_five_plane_wargame
+# wargame imported within test cases as needed
 
 runner = CliRunner()
 
