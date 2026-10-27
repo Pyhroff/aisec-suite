@@ -1,3 +1,4 @@
+import re
 import json
 import textwrap
 
@@ -57,6 +58,8 @@ def test_all_and_only_are_mutually_exclusive(tmp_path):
     r = runner.invoke(app, ["scan", str(tmp_path), "--all", "--only", "mcp"])
     assert r.exit_code != 0
     assert r.exit_code == 2
+    text = " ".join(re.sub(r"\[[0-9;]+m|[\u2502\u250c\u250f\u2518\u2514\u2500]", " ", r.output).split())
+    assert "cannot be combined" in text
 
 
 def test_policy_cli_validates_file(tmp_path):
