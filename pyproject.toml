@@ -4,21 +4,23 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "aisec-suite"
-version = "2.2.0"
-description = "Unified AI security toolkit for MCP, memory, RAG, training-data, supply-chain, behavioral, package-worm, Z3 formal verification, RMT weight forensics, verifiable inference, SSE side-channels, and mechanistic refusal firewalls."
+version = "0.4.0"
+description = "Unified CLI, findings model, SARIF and CI gate for AI-specific attack surfaces: MCP tool metadata, agent memory files and RAG documents."
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "Pyhroff" }]
 requires-python = ">=3.10"
-keywords = ["AI security", "MCP", "LLM agents", "prompt injection", "RAG", "training data poisoning", "supply chain", "SARIF", "formal verification", "z3", "verifiable inference", "freivalds"]
+keywords = ["AI security", "MCP", "LLM agents", "prompt injection", "RAG", "training data poisoning", "supply chain", "SARIF", "code scanning"]
 classifiers = ["Development Status :: 4 - Beta","Intended Audience :: Developers","License :: OSI Approved :: MIT License","Programming Language :: Python :: 3","Programming Language :: Python :: 3.10","Programming Language :: Python :: 3.11","Programming Language :: Python :: 3.12","Topic :: Security"]
 dependencies = ["typer>=0.12"]
 
 [project.optional-dependencies]
+# Published on PyPI and installable today.
 core = ["pyhroff-mcpaudit>=0.7", "memsentry>=1.2", "pyhroff-ragsentry>=1.1"]
-extended = ["pyhroff-mcpaudit>=0.7", "memsentry>=1.2", "pyhroff-ragsentry>=1.1", "pyhroff-specprove-sec>=0.4", "pyhroff-weightspecter>=2.0", "pyhroff-tokenspecter>=1.0", "pyhroff-circuitshield>=1.0", "pyhroff-attestinfer>=1.0"]
-all = ["pyhroff-mcpaudit>=0.7","memsentry>=1.2","pyhroff-ragsentry>=1.1","agent-install-guardrail>=0.8","trainsentry>=1.1","loopcheck>=0.8","wormsentry>=1.0","pyhroff-specprove-sec>=0.4","pyhroff-weightspecter>=2.0","pyhroff-tokenspecter>=1.0","pyhroff-circuitshield>=1.0","pyhroff-attestinfer>=1.0"]
-future = ["adversagen>=0.1"]
+all = ["pyhroff-mcpaudit>=0.7", "memsentry>=1.2", "pyhroff-ragsentry>=1.1"]
+# Research-preview and private scanners. These are NOT on PyPI; install them from source
+# when you have access. Requesting this extra from PyPI will fail.
+private = ["agent-install-guardrail>=0.8", "trainsentry>=1.1", "loopcheck>=0.8", "wormsentry>=1.0", "pyhroff-specprove-sec>=0.4", "pyhroff-weightspecter>=2.0", "pyhroff-tokenspecter>=1.0", "pyhroff-circuitshield>=1.0", "pyhroff-attestinfer>=1.0", "adversagen>=0.1"]
 dev = ["pytest>=8", "ruff>=0.5", "numpy>=1.22"]
 
 [project.urls]

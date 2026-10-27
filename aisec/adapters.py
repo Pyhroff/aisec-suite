@@ -108,6 +108,20 @@ def scan_context_files(root: pathlib.Path, warnings: list[str] | None = None) ->
     return out
 
 
+# Directories that never hold retrievable documents. ragsentry walks everything it is given, so
+# scanning a repository root would otherwise flag git pack files and tool caches as "documents".
+_NON_DOCUMENT_DIRS = {".git", ".hg", ".svn", "node_modules", "venv", ".venv", "__pycache__",
+                      ".ruff_cache", ".pytest_cache", ".mypy_cache", ".tox", "dist", "build"}
+
+
+def _in_non_document_dir(path: pathlib.Path, base: pathlib.Path) -> bool:
+    try:
+        parts = path.resolve().relative_to(base.resolve()).parts[:-1]
+    except ValueError:
+        parts = path.parts[:-1]
+    return any(part in _NON_DOCUMENT_DIRS or part.endswith(".egg-info") for part in parts)
+
+
 def scan_rag_dir(rag_dir: pathlib.Path, root: pathlib.Path, warnings: list[str] | None = None) -> list[Finding]:
     try:
         from ragsentry.scanner import scan_path
@@ -117,6 +131,8 @@ def scan_rag_dir(rag_dir: pathlib.Path, root: pathlib.Path, warnings: list[str] 
         return []
     out: list[Finding] = []
     for fname, fs in scan_path(str(rag_dir)).items():
+        if _in_non_document_dir(pathlib.Path(fname), rag_dir):
+            continue
         for f in fs:
             out.append(Finding("ragsentry", f"{f.check}: {f.title}", f.severity.value, f.detail, _rel(pathlib.Path(fname), root), f.line))
     return out

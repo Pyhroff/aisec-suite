@@ -19,3 +19,17 @@ jobs:
       - run: pip install -e ".[dev]"
       - run: ruff check .
       - run: pytest -q
+
+  integration:
+    # Installs the published scanners so tests/test_cli.py exercises real mcpaudit and memsentry
+    # instead of skipping. Research-preview tests still skip: those packages are not on PyPI.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - run: pip install -e ".[core,dev]"
+      - run: pytest -q -rs
