@@ -17,6 +17,8 @@ I scanned **135 public MCP server repositories** (pinned commits, findings hand-
 
 Pattern matching memorises its own examples and finds almost nothing new. Scoring decoded text structurally (hidden Unicode, base64/hex/entity decoding, co-occurrence of model-directed, data-flow and concealment cues) generalises much better, but it still misses about half of unseen attacks, so it is a review aid, not a security boundary. The same study raised mcpaudit's precision from 38.8% to 69.4% at 80.6% recall.
 
+Across 135 real MCP servers I found **no tool poisoning in the wild**. Unconstrained-scope findings were by-design capabilities, not vulnerabilities, which is why the gate is a review aid rather than a vulnerability scanner.
+
 Full method, confidence intervals and the caveats (including that the held-out set was evaluated twice) are in [`docs/STUDY.md`](docs/STUDY.md).
 
 ## Try it in two minutes
@@ -217,6 +219,14 @@ pytest -q -rs     # -rs lists tests skipped because private scanners are absent
 ```
 
 CI runs the unit tests on Python 3.10-3.12 with in-memory fake scanners, plus an integration job that installs the published scanners from PyPI. Tests for the private research modules skip in CI because those packages are not public.
+
+## Upstream security work
+
+- **BerriAI/litellm**:
+  - [PR #47312](https://github.com/BerriAI/litellm/pull/47312) (open): scope /v1/mcp/access_groups to caller-accessible servers for non-admin callers
+  - [PR #47105](https://github.com/BerriAI/litellm/pull/47105) (open): authorization check on proxy endpoints when model lists are empty
+- **PrefectHQ/fastmcp**:
+  - [PR #6063](https://github.com/PrefectHQ/fastmcp/pull/6063) (open, pending linked issue for bot reopen): wall-clock timeout and external callback limit in MontySandboxProvider and CodeMode
 
 ## Related projects
 
