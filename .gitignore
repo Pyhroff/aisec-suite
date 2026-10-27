@@ -9,3 +9,5 @@ t/
 dist/
 build/
 *.egg-info/
+
+reports/

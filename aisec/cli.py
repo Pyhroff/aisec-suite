@@ -37,6 +37,17 @@ from aisec.summary import to_markdown
 app = typer.Typer(name="aisec", help="Unified AI security toolkit.", no_args_is_help=True)
 policy_app = typer.Typer(name="policy", help="Inspect and validate policy-as-code configuration.")
 app.add_typer(policy_app)
+experimental_app = typer.Typer(
+    name="experimental",
+    help=(
+        "Scripted demos of the private research modules. They run on fixed synthetic inputs "
+        "and report pre-determined outcomes; they are not detection results or runtime controls."
+    ),
+    no_args_is_help=True,
+)
+app.add_typer(experimental_app)
+
+_DEMO_NOTICE = "NOTE: scripted demo on fixed synthetic inputs; outcomes are pre-determined, not measured."
 
 
 @app.callback()
@@ -48,9 +59,9 @@ def _main(version: bool = typer.Option(False, "--version", is_eager=True)) -> No
 
 @app.command("modules")
 def modules() -> None:
-    """List all suite modules and whether the umbrella can run them natively."""
+    """List all suite modules and whether each scanner package is installed."""
     for spec in available_modules():
-        state = "native" if spec.native else "specialist"
+        state = "installed" if spec.installed() else "missing"
         typer.echo(f"{spec.name:13} {state:10} {spec.package:30} {spec.description}")
 
 
@@ -369,13 +380,14 @@ def benchmark(
     raise typer.Exit(code)
 
 
-@app.command("remediate")
+@experimental_app.command("remediate")
 def remediate(
     path: pathlib.Path = typer.Argument(..., exists=True, file_okay=False, help="Repository root to auto-remediate."),
     html_out: Optional[pathlib.Path] = typer.Option(None, "--html", help="Write Command Center HTML5 report after remediation."),
 ) -> None:
-    """Run closed-loop mathematical auto-remediation across Python ASTs, .safetensors weights, .stream.json, and .act.json."""
-    from aisec.command_center import (
+    """Demo: apply the private modules' repair routines to their fixture artifact formats."""
+    typer.echo(_DEMO_NOTICE, err=True)
+    from aisec.experimental.command_center import (
         generate_unified_command_center_html,
         remediate_repository,
     )
@@ -403,19 +415,20 @@ def remediate(
         typer.echo(f"command center HTML written -> {html_out}")
 
 
-@app.command("dashboard")
+@experimental_app.command("dashboard")
 def dashboard(
     path: pathlib.Path = typer.Argument(..., exists=True, file_okay=False, help="Repository root to audit."),
     html_out: pathlib.Path = typer.Option(
         pathlib.Path("reports/aisec-command-center.html"),
         "--html",
         "-o",
-        help="Output path for the Unified 12-Module Command Center HTML5 dashboard.",
+        help="Output path for the demo HTML dashboard.",
     ),
     include_tests: bool = typer.Option(False, "--include-tests", help="Include test/sample directories."),
 ) -> None:
-    """Generate the Unified 12-Module AI Security Command Center HTML5 Dashboard."""
-    from aisec.command_center import generate_unified_command_center_html
+    """Demo: render an HTML dashboard of findings from the private research modules."""
+    typer.echo(_DEMO_NOTICE, err=True)
+    from aisec.experimental.command_center import generate_unified_command_center_html
 
     root = path.resolve()
     warnings: list[str] = []
@@ -438,24 +451,25 @@ def dashboard(
     typer.echo(f"command center dashboard written ({len(findings)} findings) -> {html_out}")
 
 
-@app.command("wargame")
+@experimental_app.command("wargame")
 def wargame(
     work_dir: pathlib.Path = typer.Option(
         pathlib.Path("reports/wargame_arena"),
         "--work-dir",
-        help="Working directory for 5-stage Red-vs-Blue cyber-range artifacts.",
+        help="Working directory for demo fixture artifacts.",
     ),
     html_out: pathlib.Path = typer.Option(
         pathlib.Path("reports/aisec-wargame-arena.html"),
         "--html",
         "-o",
-        help="Output path for the interactive 5-Plane Red-vs-Blue Wargame HTML5 Arena.",
+        help="Output path for the demo HTML report.",
     ),
     json_out: Optional[pathlib.Path] = typer.Option(None, "--json", help="Write JSON campaign report."),
 ) -> None:
-    """Run the 5-Stage Autonomous Red-vs-Blue Cyber-Range Wargame Simulator across all 5 mathematical planes."""
+    """Demo: replay a scripted five-stage attack/defence walkthrough on synthetic fixtures."""
+    typer.echo(_DEMO_NOTICE, err=True)
     from dataclasses import asdict
-    from aisec.wargame import export_wargame_html, run_five_plane_wargame
+    from aisec.experimental.wargame import export_wargame_html, run_five_plane_wargame
 
     report = run_five_plane_wargame(work_dir.resolve())
     export_wargame_html(report, html_out.resolve())
@@ -474,13 +488,14 @@ def wargame(
     typer.echo(f"wargame arena HTML written -> {html_out}")
 
 
-@app.command("guard-proxy")
+@experimental_app.command("guard-proxy")
 def guard_proxy(
     json_out: Optional[pathlib.Path] = typer.Option(None, "--json", help="Write Guard-Proxy transaction log as JSON."),
 ) -> None:
-    """Run the Zero-Trust Runtime Interceptor Sidecar verification suite across v2.0 mathematical hooks."""
+    """Demo: run the private modules' runtime checks on fixed sample inputs (no traffic is intercepted)."""
+    typer.echo(_DEMO_NOTICE, err=True)
     from dataclasses import asdict
-    from aisec.wargame import ZeroTrustGuardProxy
+    from aisec.experimental.wargame import ZeroTrustGuardProxy
 
     proxy = ZeroTrustGuardProxy()
     txs = proxy.inspect_and_shape_all()
@@ -488,7 +503,7 @@ def guard_proxy(
         json_out.parent.mkdir(parents=True, exist_ok=True)
         json_out.write_text(json.dumps([asdict(t) for t in txs], indent=2), encoding="utf-8")
 
-    typer.echo(f"guard-proxy inspected {len(txs)} live runtime transaction(s):")
+    typer.echo(f"guard-proxy demo ran {len(txs)} scripted sample check(s):")
     for t in txs:
         typer.echo(
             f"  [{t.tx_id}] {t.endpoint} | {t.verdict} | {t.action_taken} ({t.latency_ms}ms)"
@@ -497,6 +512,3 @@ def guard_proxy(
 
 if __name__ == "__main__":
     app()
-
-
-

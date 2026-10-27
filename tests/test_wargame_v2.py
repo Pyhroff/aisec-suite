@@ -120,6 +120,7 @@ def test_wargame_and_guard_proxy_cli(tmp_path: pathlib.Path) -> None:
     r_wg = runner.invoke(
         app,
         [
+            "experimental",
             "wargame",
             "--work-dir",
             str(work_dir),
@@ -137,8 +138,8 @@ def test_wargame_and_guard_proxy_cli(tmp_path: pathlib.Path) -> None:
     assert payload["blue_team_survival_prob"] == 1.0
 
     proxy_json = tmp_path / "proxy.json"
-    r_px = runner.invoke(app, ["guard-proxy", "--json", str(proxy_json)])
+    r_px = runner.invoke(app, ["experimental", "guard-proxy", "--json", str(proxy_json)])
     assert r_px.exit_code == 0, r_px.output
-    assert "guard-proxy inspected 3 live runtime transaction(s)" in r_px.output
+    assert "guard-proxy demo ran 3 scripted sample check(s)" in r_px.output
     txs = json.loads(proxy_json.read_text(encoding="utf-8"))
     assert len(txs) == 3

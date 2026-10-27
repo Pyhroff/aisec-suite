@@ -3,7 +3,7 @@
 One public product with independently versioned specialist scanners behind a
 common CLI and finding model.
 """
-__version__ = "2.2.0"
+__version__ = "0.4.0"
 
 MODULES = {
     "mcp": "MCP tool-surface poisoning and privilege analysis (mcpaudit)",
@@ -14,11 +14,11 @@ MODULES = {
     "behavior": "agent-loop waste and regression analysis (loopcheck)",
     "adversarial": "adaptive red-team/evasion experiments (adversagen)",
     "worm": "self-propagating package/supply-chain behavior (wormsentry)",
-    "formal": "Z3 SMT formal state-machine verification, CEGIS patch synthesis & Lean 4 proof certificates (specprove-sec)",
-    "weights": "RMT spectral & topological LoRA/safetensors backdoor detection & surgical sanitization (weightspecter)",
-    "sidechannel": "encrypted streaming SSE token-length & timing Viterbi cryptanalysis & constant-rate shaping (tokenspecter)",
-    "circuit": "mechanistic interpretability refusal-subspace & activation-steering firewall (circuitshield)",
-    "attest": "cryptographic verifiable inference, Freivalds matmul prover & model-downgrade detector (attestinfer)",
+    "formal": "[research preview] Z3 model checking of MCP tool state machines (specprove-sec)",
+    "weights": "[research preview] spectral outlier check for backdoored LoRA/safetensors weights (weightspecter)",
+    "sidechannel": "[research preview] token-length/timing leakage check for streamed responses (tokenspecter)",
+    "circuit": "[research preview] refusal-direction ablation check on activation traces (circuitshield)",
+    "attest": "[research preview] Freivalds-style spot check of inference receipts (attestinfer)",
 }
 
 

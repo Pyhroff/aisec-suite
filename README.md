@@ -1,82 +1,56 @@
-#  aisec-suite
-
-<div align="center">
-
-**Unified security tooling for AI agents, MCP, memory, RAG, training data, and software supply chains.**
+# aisec-suite
 
 [![CI](https://github.com/Pyhroff/aisec-suite/actions/workflows/tests.yml/badge.svg)](https://github.com/Pyhroff/aisec-suite/actions/workflows/tests.yml)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-### Security signals for the inputs your AI agent actually trusts.
+**A CI security gate for the inputs an AI agent trusts but code scanners ignore: MCP tool metadata, agent memory files and RAG documents.**
 
-</div>
+## Headline result
 
----
+I scanned **135 public MCP server repositories** (pinned commits, findings hand-labelled) and built a tool-poisoning detector that I evaluated on attacks it was not developed against:
 
-## Overview
+| detector | recall, seen attacks | recall, held-out attacks | false-positive rate (3,974 real tool descriptions) |
+|---|---|---|---|
+| naive regex | 42.6% | **0.0%** | 0.0% |
+| **aisec structural detector** | 61.1% | **48.1%** | **0.03%** (1 / 3,974) |
 
-Traditional application scanners focus on source code, dependencies, and runtime behavior. AI systems also consume **tool descriptions, memory files, retrieved documents, training data, and agent traces** that can influence decisions without looking like ordinary executable code.
+Pattern matching memorises its own examples and finds almost nothing new. Scoring decoded text structurally (hidden Unicode, base64/hex/entity decoding, co-occurrence of model-directed, data-flow and concealment cues) generalises much better, but it still misses about half of unseen attacks, so it is a review aid, not a security boundary. The same study raised mcpaudit's precision from 38.8% to 69.4% at 80.6% recall.
 
-**aisec-suite** brings those surfaces into one product-level workflow with a shared CLI, normalized findings, CI-friendly exit codes, JSON/SARIF output, and reusable baselines.
+Full method, confidence intervals and the caveats (including that the held-out set was evaluated twice) are in [`docs/STUDY.md`](docs/STUDY.md).
 
-The individual scanner packages remain independently versioned and testable. This repository is the **umbrella product**; the scanner packages are installed as optional dependencies.
+## Try it in two minutes
 
-## Coverage (12 Specialist Modules across 5 Mathematical Security Planes)
+```bash
+pip install "aisec-suite[core]"
+bash examples/demo-mcp-server/run_demo.sh
+```
 
-| Plane / Surface | Module | Primary Mathematical / Security Capability |
+The demo scans a small MCP server whose `add` tool hides an instruction to read `~/.ssh/id_rsa` and leak it through a parameter. The gate fails on it, then passes on the fixed version. See [`examples/demo-mcp-server`](examples/demo-mcp-server).
+
+## What it scans
+
+| Surface | Scanner | Status |
 |---|---|---|
-| **Plane 1: Model Weights & Supply Chain** | `weightspecter` v2.0 *(native `--weights`)* | Marchenko-Pastur RMT spectral law, BBP phase-transition outlier spike detection, Tracy-Widom $\text{TW}_1$ $p$-values, blind trigger inversion & surgical rank-1 spike excision |
-| **Plane 1: Fine-Tuning & Supply Chain** | `trainsentry` · `agent-install-guardrail` · `wormsentry` | Fine-tuning dataset poisoning, pre-install dependency SBOM policy, self-propagating package worm detection |
-| **Plane 2: Verifiable Compute** | `attestinfer` v2.0 *(native `--attest`)* | 16-round Rademacher Freivalds matmul prover ($2^{-16}$ soundness), Fiat-Shamir bilinear sumcheck, SHA-256 Merkle activation roots, non-linear RMSNorm/SiLU/Softmax checks & speculative draft fraud detection |
-| **Plane 3: Residual & Refusal Subspace** | `circuitshield` v2.0 *(native `--circuit`)* | Mechanistic refusal-subspace directional ablation ($\cos\theta_l$), Sparse Autoencoder (SAE) monosemantic feature disentanglement, Kalman-filter Crescendo trajectory forecasting & homeostatic clamping |
-| **Plane 4: Protocol, MCP & Memory** | `specprove-sec` *(native `--formal`)* · `mcpaudit` · `memsentry` · `ragsentry` · `loopcheck` | Z3 SMT bounded model checking, unbounded $k$-induction, Houdini invariant synthesis, CEGIS AST auto-patching, Lean 4 proof certificates, MCP tool poisoning, RAG & persistent memory hygiene |
-| **Plane 5: Encrypted Network Wire** | `tokenspecter` v2.0 *(native `--sidechannel`)* | Encrypted SSE token-length & inter-arrival timing Bayesian Viterbi cryptanalysis, speculative-decoding burst entropy & 64-byte constant-rate ring-buffer shaping |
-| **Adversarial Red-Team Layer** | `adversagen` *(specialist CLI)* | Adaptive genetic/white-box evasion experiments against static and runtime defenses |
+| MCP tool descriptions, schemas, permission scope | `mcpaudit` + built-in structural detector and reachability (`--reach`) | **Published** (`pip install "aisec-suite[core]"`) |
+| Agent memory / context files (`CLAUDE.md`, `.cursorrules`, ...) | `memsentry` | **Published** |
+| RAG source documents | `ragsentry` | **Published** |
+| Fine-tuning datasets, agent traces, package installs, package worms | `trainsentry`, `loopcheck`, `agent-install-guardrail`, `wormsentry` | Private, adapters included, not on PyPI |
+| Model weights, inference receipts, activation traces, streaming side channels, formal checks of tool state machines | `weightspecter`, `attestinfer`, `circuitshield`, `tokenspecter`, `specprove-sec` | Research preview, private, evaluated only on synthetic fixtures |
 
-## One CLI
+Only the published row is installable from PyPI today. Adapters for the other scanners activate when those packages are installed from source; otherwise the CLI reports them as unavailable instead of failing.
 
-### Repository-wide scan
+## Usage
 
 ```bash
-pip install "aisec-suite[all]"
-aisec scan .
-aisec scan . --rag ./docs
+aisec scan .                                    # MCP + memory
+aisec scan . --rag ./docs                       # add RAG documents
+aisec scan . --reach annotate                   # add handler reachability evidence
 aisec scan . --sarif aisec.sarif --json findings.json --fail-on high
-# Run every native module (MCP, Memory, RAG, Z3 Formal, RMT Weights, Verifiable Compute, Refusal Circuit, SSE Side-Channel)
-aisec scan . --all --sarif aisec.sarif
+aisec modules                                   # list scanners and whether each is installed
 ```
 
-### Closed-Loop Auto-Remediation, 5-Plane Wargame & Zero-Trust Runtime Guard-Proxy
-
-```bash
-# Automatically repair vulnerable Python ASTs (Z3 CEGIS), .safetensors (BBP excision), .proof.json (FP32 re-attestation), .act.json (homeostatic clamping), and .stream.json (64B shaping)
-aisec remediate . --html reports/aisec-command-center.html
-
-# Launch the Unified 12-Module Command Center HTML5 Dashboard
-aisec dashboard . --html reports/aisec-command-center.html
-
-# Execute the 5-Stage Autonomous Red-vs-Blue Cyber-Range Wargame Simulator
-aisec wargame --html reports/aisec-wargame-arena.html
-
-# Run the sub-millisecond Zero-Trust Runtime Interceptor Sidecar verification suite
-aisec guard-proxy --json reports/guard-proxy-tx.json
-```
-
-### Dedicated module commands
-
-```bash
-aisec training dataset.jsonl --json training-findings.json
-aisec behavior trace.json --json behavior-findings.json
-aisec supply-chain pypi:httpx --json supply-chain-findings.json
-aisec worm ./package --json worm-findings.json
-```
-
-### Discover capabilities
-
-```bash
-aisec modules
-```
+Exit codes with `--fail-on`: `0` nothing at or above the threshold, `1` findings at or above it, `2` a scanner crashed (reported as a warning, never mistaken for a finding).
 
 ## Reusable GitHub Action
 
@@ -110,11 +84,11 @@ Version tags (`vX.Y.Z`) build and validate both wheel and source distributions. 
 
 ## CI security gate
 
-Every push and pull request runs the full native scanner suite through `aisec scan . --all` with the repository policy applied. The security workflow gates on the checked-in policy and uploads SARIF results to GitHub code scanning. GitHub Actions dependencies are pinned to immutable commit SHAs and checkout disables persisted credentials.
+Every push and pull request scans this repository with the published scanners (`aisec scan . --all`, private adapters skipped) under the checked-in policy. The security workflow gates on the checked-in policy and uploads SARIF results to GitHub code scanning. GitHub Actions dependencies are pinned to immutable commit SHAs and checkout disables persisted credentials.
 
 ## Package and release status
 
-The repository may contain unreleased development changes ahead of the latest PyPI publication. For reproducible installs, pin the aisec-suite package version and specialist package versions in deployment and CI configuration rather than assuming the repository development version is the published release.
+Latest release: **0.4.0**. Earlier development builds were labelled 2.x in the repository but never published; PyPI history runs 0.1.0 -> 0.4.0. Pin versions in CI rather than tracking the default branch.
 
 The release workflow enforces an important invariant: a pushed vX.Y.Z tag must exactly match the version declared in pyproject.toml before publication. PyPI publishing uses trusted publishing (OIDC), so no long-lived PyPI API token is required.
 
@@ -140,42 +114,10 @@ aisec scan . --baseline .aisec-baseline.json --json findings.json
 
 Only new findings remain in the active finding output, so `--fail-on` evaluates newly introduced risk rather than repeatedly failing on already-accepted findings. Resolved fingerprints are reported for cleanup and audit visibility.
 
-## Architecture
-
-```text
-                           ┌──────────────────────────┐
-                           │       aisec-suite        │
-                           │ unified CLI + findings   │
-                           └────────────┬─────────────┘
-                                        │
-          ┌───────────────┬─────────────┼───────────────┬──────────────┐
-          ▼               ▼             ▼               ▼              ▼
-        MCP             Memory          RAG         Training data   Supply chain
-     mcpaudit         memsentry      ragsentry      trainsentry      guardrail
-          │               │             │               │              │
-          └───────────────┴─────────────┼───────────────┴──────────────┘
-                                        │
-                           ┌────────────┴────────────┐
-                           ▼                         ▼
-                       Behavior                 Package worms
-                       loopcheck                 wormsentry
-```
-
-`adversagen` remains the attack-side research layer rather than another static scanner.
-
-## Design principles
-
-**Static-first** · **Fail closed** · **Composable** · **CI-native** · **Honest about uncertainty**
-
-## Project status
-
-Native umbrella adapters now cover **MCP, memory, RAG, training data, supply-chain inspection, agent-loop behavior, and package-worm detection**.
-
-The adversarial research runner remains intentionally separate because it is an experiment engine rather than a static artifact scanner.
-
 ## Controlled benchmark
 
-Run the end-to-end regression corpus through the umbrella CLI:
+
+Run the end-to-end regression corpus through the umbrella CLI (the corpus, `agent-test-range`, is currently private):
 
 ```bash
 aisec benchmark ../agent-test-range --json benchmark/metrics.json
@@ -188,10 +130,6 @@ This benchmark is intentionally a **controlled regression corpus**, not a univer
 ## Detection quality
 
 The suite exposes reusable precision, recall, F1, and false-positive-rate calculations for controlled regression corpora. These metrics are intended for reproducible benchmark cases—not claims of universal real-world detection rates.
-
-## Research
-
-Benchmark methodology and evaluation results live in [`docs/STUDY.md`](docs/STUDY.md). Treat measured results as evidence for the documented corpus and experimental design, not as universal guarantees.
 
 ## Policy as code
 
@@ -243,29 +181,46 @@ aisec scan . --all --summary scan-summary.md
 
 JSON and SARIF remain the machine-readable integrations; the Markdown report is designed for human review and pull-request workflows.
 
+## Experimental demos
+
+`aisec experimental wargame | guard-proxy | dashboard | remediate` are **scripted walkthroughs** of the research-preview modules. They run on fixed, synthetic inputs and their outcomes are pre-determined. They do not intercept traffic and are not detection results. They live in `aisec/experimental/` and need the private packages.
+
+## Architecture
+
+```text
+            files in a repository / PR
+                        │
+      ┌─────────────────┼─────────────────┐
+      ▼                 ▼                 ▼
+   mcpaudit         memsentry         ragsentry        (+ optional private adapters)
+  + structural
+    detector
+  + reachability
+      │                 │                 │
+      └─────────────────┼─────────────────┘
+                        ▼
+          normalized Finding (fingerprint, severity, evidence)
+                        │
+        policy / baseline lifecycle (new · existing · resolved)
+                        │
+        terminal · JSON · SARIF 2.1.0 · Markdown job summary · exit code
+```
+
+Design principles: static-first, never execute the scanned code, never follow symlinks out of the repo, fail closed on scanner crashes, and state measured limits next to every number.
+
 ## Development
 
 ```bash
-pip install -e ".[dev]"
+pip install -e ".[core,dev]"
 ruff check .
-pytest -q
+pytest -q -rs     # -rs lists tests skipped because private scanners are absent
 ```
 
-## Portfolio
+CI runs the unit tests on Python 3.10-3.12 with in-memory fake scanners, plus an integration job that installs the published scanners from PyPI. Tests for the private research modules skip in CI because those packages are not public.
 
-mcpaudit · memsentry · ragsentry · trainsentry · agent-install-guardrail · loopcheck · wormsentry · adversagen · agent-security-ci · agent-test-range
+## Related projects
 
-
-
-## Portfolio / research architecture
-
-See [docs/PORTFOLIO.md](docs/PORTFOLIO.md) for the portfolio-level threat-model and evaluation standard. The intended flagship path is **PromptStrike → ModelHawk → Adversagen → mcpaudit → aisec-suite**, with RAG, memory, loop and supply-chain scanners providing supporting coverage.
-
-## Portfolio visibility
-
-The umbrella intentionally separates public proof from private R&D. The public repositories are the reproducible, recruiter-facing subset; specialist components that remain private are not required to use this README as a navigational link.
-
-For the current public entry points, start with **aisec-suite**, **mcp-scan-study**, **promptstrike**, and **ModelHawk**. Private specialist implementations are exercised through the controlled regression layer when access is available.
+`mcpaudit`, `memsentry`, `ragsentry` (published) · `adversagen` (attack-side research used to test the detectors) · `agent-security-ci` (CI wiring example). See [`docs/PORTFOLIO.md`](docs/PORTFOLIO.md).
 
 ## License
 
