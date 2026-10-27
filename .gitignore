@@ -5,3 +5,7 @@ __pycache__/
 
 GUIDE.md
 t/
+
+dist/
+build/
+*.egg-info/
