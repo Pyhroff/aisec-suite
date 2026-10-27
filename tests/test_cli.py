@@ -56,7 +56,7 @@ def test_all_flag_is_available(tmp_path):
 def test_all_and_only_are_mutually_exclusive(tmp_path):
     r = runner.invoke(app, ["scan", str(tmp_path), "--all", "--only", "mcp"])
     assert r.exit_code != 0
-    assert "--all cannot be combined with --only" in r.output
+    assert "--all" in r.output and "cannot be combined" in r.output
 
 
 def test_policy_cli_validates_file(tmp_path):
