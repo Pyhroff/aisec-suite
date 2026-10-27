@@ -226,7 +226,7 @@ CI runs the unit tests on Python 3.10-3.12 with in-memory fake scanners, plus an
   - [PR #47312](https://github.com/BerriAI/litellm/pull/47312) (open): scope /v1/mcp/access_groups to caller-accessible servers for non-admin callers
   - [PR #47105](https://github.com/BerriAI/litellm/pull/47105) (open): authorization check on proxy endpoints when model lists are empty
 - **PrefectHQ/fastmcp**:
-  - [PR #6063](https://github.com/PrefectHQ/fastmcp/pull/6063) (closed; reopen pending linked issue): wall-clock timeout and external callback limit in MontySandboxProvider and CodeMode
+  - [PR #6063](https://github.com/PrefectHQ/fastmcp/pull/6063) (open): wall-clock timeout and external callback limit in MontySandboxProvider and CodeMode
 
 ## Related projects
 
