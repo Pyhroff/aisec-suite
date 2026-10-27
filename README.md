@@ -88,7 +88,7 @@ Every push and pull request scans this repository with the published scanners (`
 
 ## Package and release status
 
-Latest release: **0.4.0**. Earlier development builds were labelled 2.x in the repository but never published; PyPI history runs 0.1.0 -> 0.4.0. Pin versions in CI rather than tracking the default branch.
+Latest release: **0.4.0**. Earlier development builds were labelled 2.x in the repository but never published; PyPI releases are 0.2.0, 0.3.0 and 0.4.0. Pin versions in CI rather than tracking the default branch.
 
 The release workflow enforces an important invariant: a pushed vX.Y.Z tag must exactly match the version declared in pyproject.toml before publication. PyPI publishing uses trusted publishing (OIDC), so no long-lived PyPI API token is required.
 
