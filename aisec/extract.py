@@ -8,6 +8,7 @@ repos yielded tools, so treat "no tools found" as "unknown", not "safe".
 from __future__ import annotations
 
 import ast
+import os
 import pathlib
 import re
 
@@ -23,15 +24,23 @@ def _lit(m):
 
 
 def _files(root: pathlib.Path, exts, include_tests: bool):
+    """Yield files matching exts under root.
+
+    Performance note: Prunes ignored directory subtrees (like node_modules, .git, venv)
+    in-place during top-down os.walk traversal instead of using root.rglob('*') which reads
+    and stats every entry inside ignored directories.
+    """
     skip = set(_ALWAYS_SKIP) | (set() if include_tests else _TEST_DIRS)
-    for p in root.rglob("*"):
-        if p.suffix in exts and p.is_file() and p.stat().st_size < 400_000:
-            rel = p.relative_to(root)
-            if set(rel.parts[:-1]) & skip:
-                continue
-            if not include_tests and _TEST_FILE.search(p.name):
-                continue
-            yield p
+    for dirpath, dirs, files in os.walk(root, followlinks=False):
+        dirs[:] = [d for d in dirs if d not in skip]
+        for name in files:
+            ext = os.path.splitext(name)[1]
+            if ext in exts:
+                if not include_tests and _TEST_FILE.search(name):
+                    continue
+                p = pathlib.Path(dirpath, name)
+                if not p.is_symlink() and p.is_file() and p.stat().st_size < 400_000:
+                    yield p
 
 
 _MAX_SRC = 400_000  # cap on source retained per module for reachability analysis
