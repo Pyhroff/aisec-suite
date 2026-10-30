@@ -91,7 +91,15 @@ def _dotted(n) -> str:
 
 
 def _names(n) -> set[str]:
-    return {x.id for x in ast.walk(n) if isinstance(x, ast.Name)}
+    names = getattr(n, "_names", None)
+    if names is not None:
+        return names.copy()
+    names = {x.id for x in ast.walk(n) if isinstance(x, ast.Name)}
+    try:
+        n._names = names
+    except AttributeError:
+        pass
+    return names.copy()
 
 
 def _store_names(t) -> set[str]:
@@ -107,7 +115,22 @@ def _store_names(t) -> set[str]:
 class _FnAnalysis:
     """Pre-analyzed single-pass metadata for a function AST node."""
 
+    def __new__(cls, fn: ast.AST):
+        fa = getattr(fn, "_fa", None)
+        if fa is not None:
+            return fa
+        inst = super().__new__(cls)
+        inst._init(fn)
+        try:
+            fn._fa = inst
+        except AttributeError:
+            pass
+        return inst
+
     def __init__(self, fn: ast.AST):
+        pass
+
+    def _init(self, fn: ast.AST):
         self.node_count = 0
         self.assign_pairs: list[tuple[set[str], set[str]]] = []
         self.calls: list[ast.Call] = []
@@ -163,13 +186,25 @@ def _is_safe_call(name: str) -> bool:
     return name.rsplit(".", 1)[-1] in _SAFE_METHODS and "." in name
 
 
+def _collect_funcs(tree: ast.AST, target_name: str | None = None, target_line: int | None = None) -> tuple[dict[str, list], ast.AST | None]:
+    funcs: dict[str, list] = {}
+    target_fn = None
+    stack = [tree]
+    while stack:
+        node = stack.pop()
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            funcs.setdefault(node.name, []).append(node)
+            if target_fn is None and target_name and node.name == target_name and (target_line is None or node.lineno == target_line):
+                target_fn = node
+        children = [c for c in ast.iter_child_nodes(node) if not isinstance(c, ast.expr)]
+        stack.extend(reversed(children))
+    return funcs, target_fn
+
+
 class _Ctx:
-    def __init__(self, tree: ast.AST, fname: str):
+    def __init__(self, fname: str, funcs: dict[str, list]):
         self.fname = fname
-        self.funcs: dict[str, list] = {}
-        for n in ast.walk(tree):
-            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                self.funcs.setdefault(n.name, []).append(n)
+        self.funcs = funcs
         self.kinds: set[str] = set()
         self.evidence: list[str] = []
         self.guards: set[str] = set()
@@ -275,14 +310,13 @@ def assess_python(tool: dict) -> Reach:
         tree = ast.parse(src)
     except Exception:  # SyntaxError, RecursionError, ValueError
         return Reach("unknown")
-    fn = next((n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
-               and n.name == tool.get("handler") and n.lineno == tool.get("line")), None)
+    funcs, fn = _collect_funcs(tree, tool.get("handler"), tool.get("line"))
     if fn is None:
         return Reach("unknown")
     params = set(tool.get("input_schema", {}).get("properties", {}))
     if not params:
         return Reach("unknown")
-    ctx = _Ctx(tree, tool.get("file", "?"))
+    ctx = _Ctx(tool.get("file", "?"), funcs)
     _walk_fn(fn, params, ctx, 0)
     if ctx.kinds:
         guarded = ctx.kinds <= ctx.guards
