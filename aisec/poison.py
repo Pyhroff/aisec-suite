@@ -76,7 +76,8 @@ _F = {  # feature -> (weight, cap, patterns)   (weight/cap are legacy per-text v
         r"<\s*/?\s*(?:important|system|instruction|instructions|assistant|admin|secret|override|hidden)\b|\[\s*(?:system|instruction|inst|assistant|important)\b[^\]]*\]|###\s*(?:new )?instructions?|<!--",
     ]),
 }
-_CAT = {k: [re.compile(p, _I) for p in v[2]] for k, v in _F.items()}
+# Combine pattern list into a single disjunction regex per feature category for single-pass matching
+_CAT = {k: re.compile("|".join(f"(?:{p})" for p in v[2]), _I) for k, v in _F.items()}
 
 _INVISIBLE = re.compile("[​-‏‪-‮⁠-⁤⁦-⁩﻿­]")
 _TAG_BLOCK = re.compile("[\U000e0020-\U000e007e]+")
@@ -143,7 +144,9 @@ def views(text: str) -> tuple[list[str], list[str]]:
     words = [w for w in re.findall(r"[A-Za-z]{3,}(?:\s+[A-Za-z]{2,}){4,}", stripped)]
     for w in words:
         r13 = codecs.decode(w, "rot13")
-        if _score_view(r13)[0] > _score_view(w)[0] + 1:
+        # Early-exit: if decoded rot13 text scores <= 1.0, it cannot exceed _score_view(w)[0] + 1 (since score >= 0)
+        r13_score = _score_view(r13)[0]
+        if r13_score > 1.0 and r13_score > _score_view(w)[0] + 1:
             decoded.append(r13)
             found.append("rot13")
     out += decoded
@@ -154,7 +157,8 @@ _SENT = re.compile(r"(?<=[.!?;])\s+|\n+|\s[\u2014\u2013-]{1,2}\s|(?<=:)\s+")
 
 
 def _sentence_score(sent: str) -> tuple[float, list[str]]:
-    hit = [name for name in _W if any(rx.search(sent) for rx in _CAT[name])]
+    # Single-pass regex search per feature category instead of iterating over pattern lists
+    hit = [name for name in _W if _CAT[name].search(sent)]
     f = set(hit)
     s = sum(_W[n] for n in hit)
     # Co-occurrence inside ONE sentence is what separates an instruction to the model from long benign documentation:
