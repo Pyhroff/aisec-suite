@@ -41,25 +41,35 @@ _SAFE_METH = {"trim", "toLowerCase", "toUpperCase", "split", "join", "map", "fil
 
 def _balanced(src: str, start: int, open_c: str = "{", close_c: str = "}") -> str | None:
     """Text from the opening bracket at `start` to its match, skipping strings/comments. None if unbalanced in MAX_SCAN."""
+    # Performance optimization: check bracket characters first, guard comment start checks with c == '/'
+    # to avoid expensive startswith() calls on every character, and scan strings in an inner loop.
     depth, i, n = 0, start, min(len(src), start + MAX_SCAN)
     while i < n:
         c = src[i]
-        if c in "\"'`":
-            q, i = c, i + 1
-            while i < n and src[i] != q:
-                i += 2 if src[i] == "\\" else 1
-        elif src.startswith("//", i):
-            i = src.find("\n", i)
-            i = n if i == -1 else i
-        elif src.startswith("/*", i):
-            i = src.find("*/", i)
-            i = n if i == -1 else i + 1
-        elif c == open_c:
+        if c == open_c:
             depth += 1
         elif c == close_c:
             depth -= 1
             if depth == 0:
                 return src[start: i + 1]
+        elif c in "\"'`":
+            q = c
+            i += 1
+            while i < n:
+                ci = src[i]
+                if ci == q:
+                    break
+                elif ci == "\\":
+                    i += 1
+                i += 1
+        elif c == "/" and i + 1 < n:
+            c2 = src[i + 1]
+            if c2 == "/":
+                nxt = src.find("\n", i + 2)
+                i = n if nxt == -1 else nxt
+            elif c2 == "*":
+                nxt = src.find("*/", i + 2)
+                i = n if nxt == -1 else nxt + 1
         i += 1
     return None
 
@@ -85,21 +95,27 @@ def functions(src: str) -> dict[str, tuple[list[str], str]]:
     return out
 
 
+_IDENTS_RX = re.compile(r"[A-Za-z_$][\w$]*")
+_DECL_RX = re.compile(r"(?:const|let|var)\s+(\{[^}]*\}|\[[^\]]*\]|[\w$]+)\s*(?::[^=]+)?=\s*([^;\n]+)")
+_ASSIGN_RX = re.compile(r"(?<![\w$.])([\w$]+)\s*[+\-*]?=(?!=)\s*([^;\n]+)")
+_NAME_DESTRUCT_RX = re.compile(r"(?:\w+\s*:\s*)?([\w$]+)(?:\s*=[^,}]+)?(?=[,}\]\s]|$)")
+
+
 def _idents(text: str) -> set[str]:
-    return set(re.findall(r"[A-Za-z_$][\w$]*", text))
+    return set(_IDENTS_RX.findall(text))
 
 
 def taint(text: str, params: set[str]) -> set[str]:
+    # Performance note: _DECL_RX, _ASSIGN_RX, and _NAME_DESTRUCT_RX are pre-compiled at module level
+    # to avoid re-compilation in every taint propagation round.
     tainted = set(params) | _CONTAINERS
-    decl = re.compile(r"(?:const|let|var)\s+(\{[^}]*\}|\[[^\]]*\]|[\w$]+)\s*(?::[^=]+)?=\s*([^;\n]+)")
-    assign = re.compile(r"(?<![\w$.])([\w$]+)\s*[+\-*]?=(?!=)\s*([^;\n]+)")
     for _ in range(3):
         before = len(tainted)
-        for rx in (decl, assign):
+        for rx in (_DECL_RX, _ASSIGN_RX):
             for m in rx.finditer(text):
                 if _idents(m.group(2)) & tainted:
                     lhs = m.group(1)
-                    names = re.findall(r"(?:\w+\s*:\s*)?([\w$]+)(?:\s*=[^,}]+)?(?=[,}\]\s]|$)", lhs) if lhs[0] in "{[" else [lhs]
+                    names = _NAME_DESTRUCT_RX.findall(lhs) if lhs[0] in "{[" else [lhs]
                     tainted |= {n for n in names if n not in _KEYWORDS}
         if len(tainted) == before:
             break
