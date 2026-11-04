@@ -1,0 +1,8 @@
+# Versions of the published scanners that CI last passed against (see the `integration` job in
+# .github/workflows/tests.yml). The `core` extra keeps open-ended lower bounds for library users; CI and release
+# validation install with `-c constraints.txt` so a new upstream release cannot silently break the build.
+# Bump deliberately: update these pins, run the integration job, and note the change in CHANGELOG.md.
+typer==0.27.3
+pyhroff-mcpaudit==0.8.0
+memsentry==1.2.0
+pyhroff-ragsentry==1.1.0

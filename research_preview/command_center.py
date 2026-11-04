@@ -18,7 +18,6 @@ from __future__ import annotations
 import json
 import pathlib
 from dataclasses import dataclass, field
-from typing import List
 
 from aisec import __version__
 from aisec.model import Finding
@@ -37,7 +36,7 @@ class RemediationAction:
 @dataclass
 class RemediationSummary:
     root_path: str
-    actions: List[RemediationAction] = field(default_factory=list)
+    actions: list[RemediationAction] = field(default_factory=list)
 
 
 def remediate_repository(root: pathlib.Path) -> RemediationSummary:
@@ -193,7 +192,7 @@ def remediate_repository(root: pathlib.Path) -> RemediationSummary:
 
 
 def generate_unified_command_center_html(
-    findings: List[Finding],
+    findings: list[Finding],
     remediation: RemediationSummary | None = None,
 ) -> str:
     """Render the unified 12-module `aisec-suite` Command Center HTML5 dashboard."""

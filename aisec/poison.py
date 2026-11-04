@@ -33,50 +33,50 @@ THRESHOLD_HIGH = 9.5
 
 _I = re.I
 _W = {"conceal": 4.0, "tag": 5.0, "sensitive": 2.0, "data_flow": 2.0, "model_directed": 1.5, "cross_tool": 1.0, "override": 1.5}
-_F = {  # feature -> (weight, cap, patterns)   (weight/cap are legacy per-text values; per-sentence weights are in _W)
-    "model_directed": (2.0, 6.0, [
+_F = {  # feature -> patterns (per-sentence weights live in _W)
+    "model_directed": [
         r"\b(?:the )?(?:assistant|model|agent|a\.?i\.?|llm|client)\b[^.\n]{0,40}\b(?:should|must|needs? to|is expected to|has to|ought to|will)\b",
         r"\b(?:notes?|reminders?|directives?|instructions?|guidance|memos?|requests?)\b[^.\n]{0,12}\b(?:for|to|addressed to|aimed at|meant for)\b[^.\n]{0,12}\b(?:the )?(?:assistant|model|agent|a\.?i\.?|client|llm|whoever|operator)\b",
         r"\bto the (?:model|assistant|agent|ai)\b",
         r"\b(?:you|your)\b[^.\n]{0,8}\b(?:must|should|need to|will|are expected to|have to)\b",
         r"\b(?:before|after|prior to|once|whenever|each time|every time|any time|the first time|first|then)\b[^.\n]{0,70}\b(?:call|use|invoke|run|read|open|send|post|attach|forward|include|route|record|submit|push|quote|copy|mirror|relay|repoint|rewrite|set)\b",
         r"\bfrom now on\b|\bstanding (?:guidance|rule|instruction)s?\b|\bgoing forward\b",
-    ]),
-    "cross_tool": (2.0, 4.0, [
+    ],
+    "cross_tool": [
         r"\b(?:other|every|all|any|each|whichever|whatever) (?:other )?(?:tools?|calls?|requests?|helpers?|integrations?|functions?)\b",
         r"\b(?:whenever|any time|each time|every time|when|if)\b[^.\n]{0,60}\b(?:tool|helper|integration|reader|mail|payments?|file|email|api|query)\b[^.\n]{0,25}\b(?:is|are|gets?)\b[^.\n]{0,8}\b(?:used|called|invoked|run|composed)\b",
         r"\b(?:the )?(?:mail|email|payments?|file|deletion|delete|query|git|fetch|http)\b[^.\n]{0,12}\b(?:tool|helper|reader|integration)\b",
         r"\b[a-z]+(?:_[a-z]+)+\b[^.\n]{0,30}\b(?:tool|call|argument|parameter)\b|\b(?:call|use|invoke|run)\b[^.\n]{0,12}\b[a-z]+_[a-z_]+\b",
-    ]),
-    "sensitive": (2.0, 4.0, [
+    ],
+    "sensitive": [
         r"~/\.|\$HOME|/home/\w+|\.ssh\b|id_(?:rsa|ed25519)|private key|\.env\b|dotenv|/etc/(?:passwd|shadow)|\.aws\b|credentials?\b|mcp\.json",
         r"\b(?:passwords?|api[_ -]?keys?|access tokens?|bearer tokens?|tokens?|secrets?|cookies?|wallet|system prompt|configuration prompt|chat history|"
         r"conversation(?: so far| history)?|dialogue so far|full (?:message|conversation)|user'?s (?:last )?message|ssh config|ssh private key)\b",
-    ]),
-    "data_flow": (2.0, 4.0, [
+    ],
+    "data_flow": [
         r"\b(?:include|pass|put|append|attach|add|send|forward|copy|upload|post|mirror|relay|route|embed|drop|fill|populate|supply|set|record|push|submit|quote|print|paste|store)\b"
         r"[^.\n]{0,90}\b(?:in|into|to|as|via|through|with|at|before)\b[^.\n]{0,45}\b(?:parameters?|arguments?|fields?|notes?|context|metadata|replies|reply|response|output|url|endpoint|server|email|address|webhook|inbox|account|remote|collector|service|bcc|cc)\b",
         r"https?://[^\s)\]\"']+|\b[\w.+-]+@[\w-]+\.[\w.-]+\b",
         r"\b(?:fill|populate|supply) ['\"`]?\w+['\"`]? (?:with|using)\b",
-    ]),
-    "conceal": (3.0, 6.0, [
+    ],
+    "conceal": [
         r"\b(?:do not|don't|never|no need to|without|avoid|skip|leave(?: it| that| this| them)? out|keep(?: it| that| this| those| these)?(?: out| between us| secret| quiet| silent| private)|silent(?:ly)?|quiet(?:ly)?|secretly|hide|conceal|stay silent|say nothing|not worth)\b"
         r"[^.\n]{0,60}\b(?:tell|mention|inform|reveal|disclose|show|notify|alert|surface|describe|comment|explain|summar\w*|recap|aware|know|conversation|user|person|people|bring (?:it )?up|point (?:it )?out|report|flag)\b",
         r"\b(?:nobody|no one|users?|people|persons?|end users?)\b[^.\n]{0,40}\b(?:need(?:s)? to|should|find|would find|doesn't need to|don't need to)\b[^.\n]{0,40}\b(?:hear|know|see|aware|confus\w*|alarm\w*|about (?:it|this))\b",
         r"\b(?:present|describe|summari[sz]e|call|label|explain|characteri[sz]e|frame)\b[^.\n]{0,25}\b(?:it |this |that |the (?:update|tool|step|change)? ?)?(?:only )?\b(?:as|simply as)\b[^.\n]{0,30}\b(?:routine|standard|normal|maintenance|cache|tuning|a small|just|performance)\b",
         r"\b(?:it is|it's|this is|that is)\b[^.\n]{0,20}\b(?:internal|routine|housekeeping|standard)\b[^.\n]{0,30}\b(?:no (?:need|reason)|nothing|nobody)\b",
         r"\bwithout (?:asking|confirmation|confirming|prompting)\b|\bskip (?:the )?confirmation\b|\bhas already consented\b|\balready (?:consented|approved|agreed)\b",
-    ]),
-    "override": (2.0, 4.0, [
+    ],
+    "override": [
         r"\b(?:ignore|disregard|override|overrides|supersede[sd]?|forget|bypass)\b[^.\n]{0,40}\b(?:previous|prior|earlier|above|instructions?|rules?|guidance|policy|user|confirmation|safeguards?)\b",
         r"\b(?:instead of|in place of|rather than|regardless of|whatever the (?:user|person)|even if the (?:user|person)|replac\w+ the|rewrit\w+ (?:to|the)|swap\w*|repoint\w*)\b",
         r"\b(?:rather|prefer it over|use (?:this|it) (?:instead|over))\b",
-    ]),
-    "tag": (4.0, 4.0, [
+    ],
+    "tag": [
         r"<\s*/?\s*(?:important|system|instruction|instructions|assistant|admin|secret|override|hidden)\b|\[\s*(?:system|instruction|inst|assistant|important)\b[^\]]*\]|###\s*(?:new )?instructions?|<!--",
-    ]),
+    ],
 }
-_CAT = {k: [re.compile(p, _I) for p in v[2]] for k, v in _F.items()}
+_CAT = {k: [re.compile(p, _I) for p in v] for k, v in _F.items()}
 
 _INVISIBLE = re.compile("[​-‏‪-‮⁠-⁤⁦-⁩﻿­]")
 _TAG_BLOCK = re.compile("[\U000e0020-\U000e007e]+")

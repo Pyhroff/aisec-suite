@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+- **Breaking: demos moved out of the package.** `aisec experimental ...` is gone; the scripted demos now live in the top-level `research_preview/` package (not in the wheel) and run as `python -m research_preview wargame|guard-proxy|dashboard|remediate`.
+- **Detector quality gate in CI** (`tests/test_poison_quality.py`, `tests/fixtures/benign_tools.json`): recall floors on the 108 committed positives and a no-new-false-positives check on 66 realistic benign tool descriptions. Per-feature unit tests added in `tests/test_poison.py`; unused legacy weight/cap values removed from `aisec/poison.py`.
+- **Doc correction:** seen-register recall at medium+ reproduces as 63.0% (34/54), not 61.1%; held-out and high-severity figures unchanged.
+- **Tooling:** ruff now also checks bugbear, isort, pyupgrade and bandit rules; mypy runs in CI; coverage reported with a floor; `constraints.txt` pins the scanner versions used by CI; a `tests-gate` job aggregates required checks. Fixed `raise ... from` chaining in the CLI and a latent `None` iteration when a scanner report had `"findings": null`.
+- **Docs:** README trimmed; policy, lifecycle, reporting and release details moved to `docs/REFERENCE.md`; added `CONTRIBUTING.md`; removed stray `.jules/` agent notes.
+
 ## 0.4.0
 - **Version reset to the published line.** Development builds labelled 2.0-2.2 in the repository were never released; PyPI goes 0.3.0 -> 0.4.0.
 - **Install matches the docs.** `[core]` and `[all]` now contain only packages that exist on PyPI. Unpublished scanners moved to a `[private]` extra that is documented as source-only.

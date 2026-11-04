@@ -11,6 +11,7 @@ import ast
 import os
 import pathlib
 import re
+from typing import Any
 
 _ALWAYS_SKIP = {"node_modules", ".git", "dist", "build", "venv", ".venv", "__pycache__", "docs"}
 _TEST_DIRS = {"tests", "test", "__tests__", "examples", "example", "e2e", "bench", "fixtures", "scripts"}
@@ -104,7 +105,7 @@ def _zod_props(block: str) -> dict:
     props = {}
     for m in re.finditer(r"(\w+)\s*:\s*(?:z|zod)\s*\.\s*(string|number|boolean|enum|array|object|any|union|record)\s*\(([^)]*)\)([^,\n]*(?:\n\s*\.[^,\n]*)*)", block):
         key, kind, _arg, chain = m.groups()
-        s = {"type": {"string": "string", "number": "number", "boolean": "boolean", "array": "array", "enum": "string"}.get(kind, "object")}
+        s: dict[str, Any] = {"type": {"string": "string", "number": "number", "boolean": "boolean", "array": "array", "enum": "string"}.get(kind, "object")}
         if kind == "enum":
             s["enum"] = ["?"]
         if re.search(r"\.regex\(|\.startsWith\(|\.endsWith\(|\.includes\(", chain):
@@ -123,7 +124,7 @@ def _json_props(block: str) -> dict:
         k, ty, tail = pm.groups()
         sc = {"type": ty}
         for f in ("enum", "pattern", "format", "maxLength"):
-            if re.search(r"\b%s\s*:" % f, tail):
+            if re.search(rf"\b{f}\s*:", tail):
                 sc[f] = "?"
         props[k] = sc
     return props
@@ -206,13 +207,13 @@ def extract_tools(root: str | pathlib.Path, include_tests: bool = False) -> list
     for p in ts:
         try:
             _collect_consts(p.read_text(errors="ignore"), consts)
-        except Exception:
+        except Exception:  # noqa: S110 - an unreadable file must not abort the scan
             pass
     for p in ts:
         try:
             for t in _ts_tools(p, consts):
                 tools.append({**t, "file": str(p.relative_to(root))})
-        except Exception:
+        except Exception:  # noqa: S110 - an unreadable file must not abort the scan
             pass
     seen, uniq = set(), []
     for t in tools:

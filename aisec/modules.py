@@ -1,8 +1,11 @@
 """Module registry and adapter capability metadata."""
 from __future__ import annotations
+
 import importlib.util
 from dataclasses import dataclass
+
 from aisec import MODULES
+
 
 @dataclass(frozen=True)
 class ModuleSpec:

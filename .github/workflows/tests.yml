@@ -18,7 +18,8 @@ jobs:
       # Adapter tests use in-memory fake scanners, so they run here even though the real ones are not on PyPI.
       - run: pip install -e ".[dev]"
       - run: ruff check .
-      - run: pytest -q
+      - run: mypy
+      - run: pytest -q --cov --cov-report=term-missing
 
   integration:
     # Installs the published scanners so tests/test_cli.py exercises real mcpaudit and memsentry
@@ -31,5 +32,15 @@ jobs:
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.12"
-      - run: pip install -e ".[core,dev]"
-      - run: pytest -q -rs
+      - run: pip install -c constraints.txt -e ".[core,dev]"
+      - run: pytest -q -rs --cov --cov-report=term-missing
+
+  # Single check name for branch protection: mark "tests-gate" as required in repository settings so neither the
+  # unit matrix nor the real-scanner integration job can be skipped or fail silently.
+  tests-gate:
+    if: always()
+    needs: [test, integration]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          test "${{ needs.test.result }}" = "success" && test "${{ needs.integration.result }}" = "success"

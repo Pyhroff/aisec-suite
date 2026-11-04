@@ -24,7 +24,7 @@ def _run_json(
     final_args = list(args)
     if output_file is not None:
         final_args += ["--json", str(output_file)]
-    proc = subprocess.run(
+    proc = subprocess.run(  # noqa: S603 - fixed interpreter, argv list, no shell
         [sys.executable, "-m", scanner, *final_args],
         cwd=root,
         text=True,
@@ -99,7 +99,7 @@ def scan_supply_chain(target: str, warnings: list[str] | None = None) -> list[Fi
     try:
         with tempfile.TemporaryDirectory() as tmp:
             out = pathlib.Path(tmp) / "guardrail.json"
-            proc = subprocess.run(
+            proc = subprocess.run(  # noqa: S603 - fixed interpreter, argv list, no shell
                 [
                     sys.executable,
                     "-m",
@@ -133,10 +133,10 @@ def scan_supply_chain(target: str, warnings: list[str] | None = None) -> list[Fi
 def scan_worm_tree(root: pathlib.Path, warnings: list[str] | None = None) -> list[Finding]:
     """Run wormsentry's library checks directly."""
     try:
-        from wormsentry.package import Package
-        from wormsentry.checks.install_script_risk import check_install_script_risk
         from wormsentry.checks.credential_harvesting import check_credential_harvesting
+        from wormsentry.checks.install_script_risk import check_install_script_risk
         from wormsentry.checks.self_propagation import check_self_propagation
+        from wormsentry.package import Package
     except ImportError as exc:
         if warnings is not None:
             warnings.append(f"wormsentry unavailable: {exc}")
@@ -156,7 +156,7 @@ def scan_worm_tree(root: pathlib.Path, warnings: list[str] | None = None) -> lis
 def _findings_from_payload(scanner: str, payload: Any, root: pathlib.Path) -> list[Finding]:
     """Best-effort normalization for common specialist JSON report shapes."""
     if isinstance(payload, dict):
-        raw = payload.get("findings", payload.get("results", []))
+        raw = payload.get("findings", payload.get("results", [])) or []
     elif isinstance(payload, list):
         raw = payload
     else:
