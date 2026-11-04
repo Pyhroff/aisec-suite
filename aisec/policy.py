@@ -10,7 +10,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from aisec.model import Finding, SEVERITY_ORDER
+from aisec.model import SEVERITY_ORDER, Finding
 
 PROFILE_NAMES = ("strict", "balanced", "dev")
 PROFILES = {

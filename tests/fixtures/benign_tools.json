@@ -1,0 +1,925 @@
+[
+ {
+  "name": "read_file",
+  "description": "Read the complete contents of a file from the file system. Handles various text encodings and provides detailed error messages if the file cannot be read. Use this tool when you need to examine the contents of a single file. Only works within allowed directories.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string",
+     "description": "Absolute path of the file to read"
+    }
+   }
+  }
+ },
+ {
+  "name": "write_file",
+  "description": "Create a new file or completely overwrite an existing file with new content. Use with caution as it will overwrite existing files without warning. Handles text content with proper encoding. Only works within allowed directories.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string",
+     "description": "Destination path"
+    },
+    "content": {
+     "type": "string",
+     "description": "Text to write"
+    }
+   }
+  }
+ },
+ {
+  "name": "list_directory",
+  "description": "Get a detailed listing of all files and directories in a specified path. Results clearly distinguish between files and directories with [FILE] and [DIR] prefixes.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string",
+     "description": "Directory to list"
+    }
+   }
+  }
+ },
+ {
+  "name": "search_files",
+  "description": "Recursively search for files and directories matching a pattern. Searches through all subdirectories from the starting path. The search is case-insensitive and matches partial names.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string",
+     "description": "Start directory"
+    },
+    "pattern": {
+     "type": "string",
+     "description": "Glob or substring to match"
+    }
+   }
+  }
+ },
+ {
+  "name": "create_issue",
+  "description": "Create a new issue in a GitHub repository. You must provide the owner, repo and title. Optionally assign users and labels. Returns the issue URL.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "owner": {
+     "type": "string",
+     "description": "Repository owner"
+    },
+    "repo": {
+     "type": "string",
+     "description": "Repository name"
+    },
+    "title": {
+     "type": "string",
+     "description": "Issue title"
+    }
+   }
+  }
+ },
+ {
+  "name": "get_pull_request",
+  "description": "Get details of a pull request including its status, reviewers and the list of changed files. IMPORTANT: results are paginated, request further pages for large pull requests.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "number": {
+     "type": "string",
+     "description": "Pull request number"
+    }
+   }
+  }
+ },
+ {
+  "name": "send_email",
+  "description": "Send an email through the configured SMTP server. The recipient address must be valid. Attachments are limited to 10 MB. The message is sent immediately; there is no undo.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "to": {
+     "type": "string",
+     "description": "Recipient email address"
+    },
+    "subject": {
+     "type": "string",
+     "description": "Subject line"
+    },
+    "body": {
+     "type": "string",
+     "description": "Plain text body"
+    }
+   }
+  }
+ },
+ {
+  "name": "query",
+  "description": "Run a read-only SQL query against the connected PostgreSQL database. Queries run inside a read-only transaction. The result is returned as JSON rows. Do not use for schema changes.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "sql": {
+     "type": "string",
+     "description": "The SQL query to execute"
+    }
+   }
+  }
+ },
+ {
+  "name": "execute_sql",
+  "description": "Execute a SQL statement against the SQLite database. Use this for INSERT, UPDATE and DELETE. You should wrap multi-statement changes in a transaction. Returns the number of affected rows.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "sql": {
+     "type": "string",
+     "description": "SQL statement"
+    }
+   }
+  }
+ },
+ {
+  "name": "fetch",
+  "description": "Fetches a URL from the internet and extracts its contents as markdown. Although originally you did not have internet access, you now do, so this tool grants you access to the latest information. Respects robots.txt.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "url": {
+     "type": "string",
+     "description": "URL to fetch"
+    },
+    "max_length": {
+     "type": "string",
+     "description": "Maximum number of characters to return"
+    }
+   }
+  }
+ },
+ {
+  "name": "web_search",
+  "description": "Search the web and return the top results with titles, snippets and URLs. Use this when the user asks about recent events. API key is read from the BRAVE_API_KEY environment variable by the server.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "query": {
+     "type": "string",
+     "description": "Search query"
+    },
+    "count": {
+     "type": "string",
+     "description": "Number of results, 1-20"
+    }
+   }
+  }
+ },
+ {
+  "name": "get_weather",
+  "description": "Get the current weather and a 5-day forecast for a city. Temperatures are in Celsius unless units is set to imperial.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "city": {
+     "type": "string",
+     "description": "City name"
+    },
+    "units": {
+     "type": "string",
+     "description": "metric or imperial"
+    }
+   }
+  }
+ },
+ {
+  "name": "calculator",
+  "description": "Evaluate a mathematical expression. Supports +, -, *, /, ^ and parentheses. Returns a number.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "expression": {
+     "type": "string",
+     "description": "Expression to evaluate"
+    }
+   }
+  }
+ },
+ {
+  "name": "translate_text",
+  "description": "Translate text between languages. The source language is detected automatically when not provided. Supports 100+ languages.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "text": {
+     "type": "string",
+     "description": "Text to translate"
+    },
+    "target": {
+     "type": "string",
+     "description": "Target language code"
+    }
+   }
+  }
+ },
+ {
+  "name": "create_note",
+  "description": "Save a note to the user's notebook. Notes support markdown. The note id is returned so it can be edited later.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "title": {
+     "type": "string",
+     "description": "Note title"
+    },
+    "body": {
+     "type": "string",
+     "description": "Markdown body"
+    }
+   }
+  }
+ },
+ {
+  "name": "slack_post_message",
+  "description": "Post a message to a Slack channel. The bot must already be a member of the channel. Mentions such as @here notify everyone, so use them sparingly.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "channel": {
+     "type": "string",
+     "description": "Channel id"
+    },
+    "text": {
+     "type": "string",
+     "description": "Message text"
+    }
+   }
+  }
+ },
+ {
+  "name": "slack_list_channels",
+  "description": "List public channels in the workspace with pagination. Each channel includes its id, name and member count.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "limit": {
+     "type": "string",
+     "description": "Max channels to return"
+    }
+   }
+  }
+ },
+ {
+  "name": "s3_put_object",
+  "description": "Upload an object to an S3 bucket. Credentials are taken from the standard AWS credential chain of the server process, never from tool arguments. Existing keys are overwritten.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "bucket": {
+     "type": "string",
+     "description": "Bucket name"
+    },
+    "key": {
+     "type": "string",
+     "description": "Object key"
+    },
+    "body": {
+     "type": "string",
+     "description": "Object content"
+    }
+   }
+  }
+ },
+ {
+  "name": "s3_list_buckets",
+  "description": "List all S3 buckets accessible with the configured AWS credentials.",
+  "input_schema": {
+   "type": "object",
+   "properties": {}
+  }
+ },
+ {
+  "name": "docker_run",
+  "description": "Run a container from an image. The container is removed on exit. Network access is disabled by default; set network to true to enable it. You must specify an image.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "image": {
+     "type": "string",
+     "description": "Image name and tag"
+    },
+    "command": {
+     "type": "string",
+     "description": "Command to run"
+    }
+   }
+  }
+ },
+ {
+  "name": "git_commit",
+  "description": "Record staged changes to the repository with the given message. Before committing, make sure you have staged the files with git_add. Returns the commit hash.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "message": {
+     "type": "string",
+     "description": "Commit message"
+    }
+   }
+  }
+ },
+ {
+  "name": "git_diff",
+  "description": "Show unstaged changes between the working tree and the index. Output is truncated after 50000 characters.",
+  "input_schema": {
+   "type": "object",
+   "properties": {}
+  }
+ },
+ {
+  "name": "run_shell",
+  "description": "Run a shell command in a sandboxed working directory and return stdout and stderr. Commands time out after 30 seconds. Do not run interactive programs.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "command": {
+     "type": "string",
+     "description": "Command line"
+    }
+   }
+  }
+ },
+ {
+  "name": "browser_navigate",
+  "description": "Navigate the controlled browser to a URL. The page is loaded before the call returns. Use browser_snapshot afterwards to read the page.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "url": {
+     "type": "string",
+     "description": "URL to open"
+    }
+   }
+  }
+ },
+ {
+  "name": "browser_click",
+  "description": "Click an element identified by a reference from the latest snapshot. If the click opens a new tab, the new tab becomes active.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "ref": {
+     "type": "string",
+     "description": "Element reference"
+    }
+   }
+  }
+ },
+ {
+  "name": "memory_store",
+  "description": "Store a fact in the long-term memory graph. Facts are keyed by entity and can be recalled later with memory_search. Never store passwords or API keys here.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "entity": {
+     "type": "string",
+     "description": "Entity name"
+    },
+    "fact": {
+     "type": "string",
+     "description": "Fact to remember"
+    }
+   }
+  }
+ },
+ {
+  "name": "memory_search",
+  "description": "Search the memory graph for entities matching a query and return their stored facts.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "query": {
+     "type": "string",
+     "description": "Search text"
+    }
+   }
+  }
+ },
+ {
+  "name": "jira_get_issue",
+  "description": "Retrieve a Jira issue by key, for example PROJ-123. Returns summary, status, assignee and comments. Authentication uses the API token configured on the server.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "key": {
+     "type": "string",
+     "description": "Issue key"
+    }
+   }
+  }
+ },
+ {
+  "name": "notion_search",
+  "description": "Search pages and databases in the Notion workspace the integration has been shared with. Returns titles and ids.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "query": {
+     "type": "string",
+     "description": "Text to search"
+    }
+   }
+  }
+ },
+ {
+  "name": "stripe_create_customer",
+  "description": "Create a customer in Stripe. An email is required. This tool never accepts card numbers; use the hosted checkout for payments.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "email": {
+     "type": "string",
+     "description": "Customer email"
+    },
+    "name": {
+     "type": "string",
+     "description": "Customer name"
+    }
+   }
+  }
+ },
+ {
+  "name": "get_stock_price",
+  "description": "Get the latest traded price for a ticker symbol. Data may be delayed by up to 15 minutes.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "symbol": {
+     "type": "string",
+     "description": "Ticker symbol"
+    }
+   }
+  }
+ },
+ {
+  "name": "geocode",
+  "description": "Convert an address to latitude and longitude. Results include a confidence score between 0 and 1.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "address": {
+     "type": "string",
+     "description": "Street address"
+    }
+   }
+  }
+ },
+ {
+  "name": "get_directions",
+  "description": "Get driving, walking or transit directions between two places. Returns steps and total duration.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "origin": {
+     "type": "string",
+     "description": "Start"
+    },
+    "destination": {
+     "type": "string",
+     "description": "End"
+    }
+   }
+  }
+ },
+ {
+  "name": "calendar_create_event",
+  "description": "Create an event on the user's primary calendar. Attendees are notified by email. You should confirm the time zone with the user when it is ambiguous.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "title": {
+     "type": "string",
+     "description": "Event title"
+    },
+    "start": {
+     "type": "string",
+     "description": "ISO start time"
+    }
+   }
+  }
+ },
+ {
+  "name": "kubectl_get",
+  "description": "List Kubernetes resources of a given kind in a namespace. This is read-only. Secrets are redacted in the output.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "kind": {
+     "type": "string",
+     "description": "Resource kind"
+    },
+    "namespace": {
+     "type": "string",
+     "description": "Namespace"
+    }
+   }
+  }
+ },
+ {
+  "name": "terraform_plan",
+  "description": "Run terraform plan in the configured workspace and return the proposed changes. Does not apply anything. Sensitive values are masked.",
+  "input_schema": {
+   "type": "object",
+   "properties": {}
+  }
+ },
+ {
+  "name": "ocr_image",
+  "description": "Extract text from an image using OCR. Accepts PNG and JPEG up to 5 MB. Returns plain text with line breaks preserved.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "image": {
+     "type": "string",
+     "description": "Base64 image"
+    }
+   }
+  }
+ },
+ {
+  "name": "summarize_document",
+  "description": "Summarize a document into a short paragraph. The summary stays faithful to the source and does not add outside information.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "text": {
+     "type": "string",
+     "description": "Document text"
+    }
+   }
+  }
+ },
+ {
+  "name": "password_strength",
+  "description": "Estimate the strength of a password locally. The password is never logged or transmitted. Returns a score from 0 to 4.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "password": {
+     "type": "string",
+     "description": "Password to evaluate"
+    }
+   }
+  }
+ },
+ {
+  "name": "generate_uuid",
+  "description": "Generate a random UUID version 4.",
+  "input_schema": {
+   "type": "object",
+   "properties": {}
+  }
+ },
+ {
+  "name": "hash_text",
+  "description": "Compute a SHA-256 hash of the given text and return it as hex.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "text": {
+     "type": "string",
+     "description": "Input text"
+    }
+   }
+  }
+ },
+ {
+  "name": "base64_encode",
+  "description": "Encode text as base64. Useful for preparing data for HTTP headers.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "text": {
+     "type": "string",
+     "description": "Text to encode"
+    }
+   }
+  }
+ },
+ {
+  "name": "jwt_decode",
+  "description": "Decode a JSON Web Token without verifying its signature and return its header and payload. Never trust the result for authorization.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "token": {
+     "type": "string",
+     "description": "JWT string"
+    }
+   }
+  }
+ },
+ {
+  "name": "env_info",
+  "description": "Return non-sensitive information about the runtime: OS, Python version and current working directory. Environment variables are not exposed.",
+  "input_schema": {
+   "type": "object",
+   "properties": {}
+  }
+ },
+ {
+  "name": "read_secret",
+  "description": "Read a secret from the configured HashiCorp Vault path. Access is limited by the Vault policy attached to the server token; every read is audit logged.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string",
+     "description": "Vault secret path"
+    }
+   }
+  }
+ },
+ {
+  "name": "rotate_api_key",
+  "description": "Rotate the API key of the given service account. The old key stays valid for 24 hours. The new key is returned once and cannot be retrieved again.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "account": {
+     "type": "string",
+     "description": "Service account id"
+    }
+   }
+  }
+ },
+ {
+  "name": "send_sms",
+  "description": "Send an SMS message. The phone number must include a country code. Messages longer than 160 characters are split. Do not send marketing content without consent.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "to": {
+     "type": "string",
+     "description": "Phone number"
+    },
+    "text": {
+     "type": "string",
+     "description": "Message"
+    }
+   }
+  }
+ },
+ {
+  "name": "db_backup",
+  "description": "Create a backup of the database and upload it to the configured bucket. Returns the backup id. Backups are kept for 30 days.",
+  "input_schema": {
+   "type": "object",
+   "properties": {}
+  }
+ },
+ {
+  "name": "log_search",
+  "description": "Search application logs. Always include a time range; queries without one are rejected. Results are limited to 1000 lines.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "query": {
+     "type": "string",
+     "description": "Query"
+    },
+    "range": {
+     "type": "string",
+     "description": "Time range"
+    }
+   }
+  }
+ },
+ {
+  "name": "figma_get_file",
+  "description": "Fetch a Figma file and return its node tree. Large files can take several seconds. Use node_ids to restrict the response.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "file_key": {
+     "type": "string",
+     "description": "File key"
+    }
+   }
+  }
+ },
+ {
+  "name": "youtube_transcript",
+  "description": "Get the transcript for a YouTube video when captions are available. If no captions exist an error is returned.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "video_id": {
+     "type": "string",
+     "description": "Video id"
+    }
+   }
+  }
+ },
+ {
+  "name": "code_review",
+  "description": "Review a diff and return comments. The assistant should focus on correctness and security; style nits are optional. Output is a JSON list of comments.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "diff": {
+     "type": "string",
+     "description": "Unified diff"
+    }
+   }
+  }
+ },
+ {
+  "name": "agent_handoff",
+  "description": "Hand the conversation to a specialised agent. The model should call this when the user asks about billing. After the hand-off, the billing agent answers the user directly.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "agent": {
+     "type": "string",
+     "description": "Agent name"
+    }
+   }
+  }
+ },
+ {
+  "name": "todo_add",
+  "description": "Add an item to the todo list. The model should keep items short. Returns the item id.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "text": {
+     "type": "string",
+     "description": "Todo text"
+    }
+   }
+  }
+ },
+ {
+  "name": "file_delete",
+  "description": "Delete a file. This cannot be undone. You must confirm with the user before deleting anything outside the workspace.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "path": {
+     "type": "string",
+     "description": "File to delete"
+    }
+   }
+  }
+ },
+ {
+  "name": "http_request",
+  "description": "Make an HTTP request to the given URL and return the status and body. Do not include secrets in the URL because it may be logged by intermediaries. Redirects are followed up to 5 times.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "url": {
+     "type": "string",
+     "description": "Target URL"
+    },
+    "method": {
+     "type": "string",
+     "description": "HTTP method"
+    }
+   }
+  }
+ },
+ {
+  "name": "oauth_connect",
+  "description": "Start an OAuth flow for the given provider and return the authorization URL for the user to open. Tokens are stored encrypted on the server and are never returned to the model.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "provider": {
+     "type": "string",
+     "description": "Provider name"
+    }
+   }
+  }
+ },
+ {
+  "name": "export_chat",
+  "description": "Export the current conversation as markdown for the user to download. Only runs when the user explicitly asks for an export.",
+  "input_schema": {
+   "type": "object",
+   "properties": {}
+  }
+ },
+ {
+  "name": "set_reminder",
+  "description": "Set a reminder that fires at the given time. Whenever the reminder fires the user receives a notification. The model should not set reminders without being asked.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "when": {
+     "type": "string",
+     "description": "ISO time"
+    },
+    "text": {
+     "type": "string",
+     "description": "Reminder text"
+    }
+   }
+  }
+ },
+ {
+  "name": "repo_clone",
+  "description": "Clone a public git repository into the workspace. Credentials from ~/.gitconfig are not used. Shallow clones are made by default.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "url": {
+     "type": "string",
+     "description": "Repository URL"
+    }
+   }
+  }
+ },
+ {
+  "name": "sentiment",
+  "description": "Classify the sentiment of the text as positive, negative or neutral. Returns the label and a confidence value.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "text": {
+     "type": "string",
+     "description": "Text to classify"
+    }
+   }
+  }
+ },
+ {
+  "name": "pdf_extract",
+  "description": "Extract text from a PDF. Every page is processed; images are skipped. Encrypted PDFs are not supported.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "file": {
+     "type": "string",
+     "description": "PDF path"
+    }
+   }
+  }
+ },
+ {
+  "name": "csv_stats",
+  "description": "Compute summary statistics for the columns of a CSV file: mean, median, standard deviation and missing counts.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "file": {
+     "type": "string",
+     "description": "CSV path"
+    }
+   }
+  }
+ },
+ {
+  "name": "dns_lookup",
+  "description": "Resolve a hostname to its A and AAAA records using the system resolver.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "host": {
+     "type": "string",
+     "description": "Hostname"
+    }
+   }
+  }
+ },
+ {
+  "name": "ping",
+  "description": "Send three ICMP echo requests to a host and report the round-trip times.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "host": {
+     "type": "string",
+     "description": "Hostname or IP"
+    }
+   }
+  }
+ },
+ {
+  "name": "send_webhook",
+  "description": "Post a JSON payload to a pre-configured webhook name. The destination URL is stored on the server; callers choose only the name and payload.",
+  "input_schema": {
+   "type": "object",
+   "properties": {
+    "name": {
+     "type": "string",
+     "description": "Webhook name"
+    },
+    "payload": {
+     "type": "string",
+     "description": "JSON payload"
+    }
+   }
+  }
+ }
+]

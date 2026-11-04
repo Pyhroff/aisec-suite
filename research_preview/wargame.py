@@ -27,7 +27,6 @@ import json
 import pathlib
 import time
 from dataclasses import asdict, dataclass, field
-from typing import List
 
 import numpy as np
 
@@ -70,8 +69,8 @@ class WargameCampaignReport:
     unprotected_compromise_prob: float
     blue_team_survival_prob: float
     total_latency_ms: float
-    stages: List[WargameStageResult] = field(default_factory=list)
-    proxy_transactions: List[GuardProxyTransaction] = field(default_factory=list)
+    stages: list[WargameStageResult] = field(default_factory=list)
+    proxy_transactions: list[GuardProxyTransaction] = field(default_factory=list)
 
 
 class ZeroTrustGuardProxy:
@@ -79,8 +78,8 @@ class ZeroTrustGuardProxy:
     Live Zero-Trust Runtime Interceptor Sidecar (`aisec guard-proxy`) for LLM/MCP endpoints.
     """
 
-    def inspect_and_shape_all(self) -> List[GuardProxyTransaction]:
-        txs: List[GuardProxyTransaction] = []
+    def inspect_and_shape_all(self) -> list[GuardProxyTransaction]:
+        txs: list[GuardProxyTransaction] = []
 
         # Transaction 1: Incoming Model Inference Receipt Verification (AttestInfer v2.0)
         t0 = time.perf_counter()
@@ -191,7 +190,7 @@ def run_five_plane_wargame(work_dir: pathlib.Path) -> WargameCampaignReport:
     """
     t_start = time.perf_counter()
     work_dir.mkdir(parents=True, exist_ok=True)
-    stages: List[WargameStageResult] = []
+    stages: list[WargameStageResult] = []
 
     # Stage 1: WeightSpecter v2.0 (Supply-Chain LoRA Trojan + Trigger Inversion)
     s0 = time.perf_counter()
