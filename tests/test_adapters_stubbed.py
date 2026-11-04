@@ -12,6 +12,7 @@ import pytest
 from typer.testing import CliRunner
 
 from aisec.cli import app
+from research_preview.cli import app as preview_app
 
 runner = CliRunner()
 
@@ -274,9 +275,9 @@ def test_command_center_remediate_and_dashboard(fake_scanners, tmp_path):
     pytest.importorskip("tokenspecter")
     pytest.importorskip("circuitshield")
     pytest.importorskip("attestinfer")
-    from tokenspecter.sidechannel_engine import generate_stream_corpus
-    from circuitshield.circuit_engine import generate_circuit_corpus
     from attestinfer.attest_engine import generate_proof_corpus
+    from circuitshield.circuit_engine import generate_circuit_corpus
+    from tokenspecter.sidechannel_engine import generate_stream_corpus
 
     target = tmp_path / "cyber_range"
     target.mkdir()
@@ -285,13 +286,13 @@ def test_command_center_remediate_and_dashboard(fake_scanners, tmp_path):
     generate_proof_corpus(target / "proofs")
 
     dash_html = tmp_path / "pre_dash.html"
-    r_dash = runner.invoke(app, ["experimental", "dashboard", str(target), "--html", str(dash_html)])
+    r_dash = runner.invoke(preview_app, ["dashboard", str(target), "--html", str(dash_html)])
     assert r_dash.exit_code == 0, r_dash.output
     assert dash_html.exists()
     assert "Unified 12-Module AI Security Command Center" in dash_html.read_text(encoding="utf-8")
 
     rem_html = tmp_path / "post_rem.html"
-    r_rem = runner.invoke(app, ["experimental", "remediate", str(target), "--html", str(rem_html)])
+    r_rem = runner.invoke(preview_app, ["remediate", str(target), "--html", str(rem_html)])
     assert r_rem.exit_code == 0, r_rem.output
     assert "remediated 8 artifact(s)" in r_rem.output
     assert rem_html.exists()
