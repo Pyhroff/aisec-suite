@@ -255,7 +255,7 @@ def _walk_fn(fn, tainted: set[str], ctx: _Ctx, depth: int) -> None:
                                 bound.add(a.vararg.arg)      # e.g. _safe_call(fn, *args): the dispatcher pattern
                     for k in call.keywords:
                         if _names(k.value) & tainted:
-                            if k.arg in named:
+                            if k.arg is not None and k.arg in named:
                                 bound.add(k.arg)
                             elif a.kwarg:
                                 bound.add(a.kwarg.arg)
@@ -301,12 +301,12 @@ def assess(tool: dict) -> Reach:
             return assess_python(tool)
         if tool.get("lang") == "js":
             return assess_js(tool)
-    except Exception:  # analysis must never take down a scan
+    except Exception:  # noqa: S110 - analysis must never take down a scan
         pass
     return Reach("unknown")
 
 
-def adjust_severity(severity: str, r: "Reach", strict: bool = False) -> str:
+def adjust_severity(severity: str, r: Reach, strict: bool = False) -> str:
     """Evidence tiers. Refuted (no sink / guarded) always lowers. Unproven (could not see the flow) lowers only in
     strict mode, so a CI gate on HIGH means 'a sink was actually reached'. Proven keeps the claimed severity."""
     i = SEVERITIES.index(severity)

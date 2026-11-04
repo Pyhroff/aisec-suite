@@ -33,10 +33,12 @@ Question: can a static detector flag malicious instructions hidden in MCP tool m
 |---|---|---|---|
 | naive regex | 42.6% | 0.0% | 0.0% |
 | mcpaudit description scan | 42.6% | 3.7% | 0.88% (medium+), 0.05% (high) |
-| **aisec structural (medium+)** | **61.1%** | **48.1%** | **0.03% (1/3974)** |
+| **aisec structural (medium+)** | **63.0%** | **48.1%** | **0.03% (1/3974)** |
 | aisec structural (high) | 20.4% | 13.0% | 0.0% |
 
 Reading: pattern matching memorises its own examples (42.6% seen vs 0-4% held-out). The structural detector (decoding views: invisible chars, Unicode tag block, bidi, NFKC, base64, hex, percent, HTML entities, rot13; per-sentence co-occurrence of model-directed, cross-tool, sensitive-data, data-flow, concealment and override features; parameter descriptions/defaults/enums scanned too) generalises better but still misses about half of held-out attacks.
+
+**Correction (reproduced from the committed positives):** an earlier revision of this table reported 61.1% (33/54) for seen recall at medium+. Re-running the committed detector on `benchmarks/poison/attacks.py` gives 34/54 = 63.0%; held-out (26/54) and high-severity (11/54, 7/54) figures reproduce exactly. `tests/test_poison_quality.py` now locks these in.
 
 **Honesty notes.**
 * The held-out register was evaluated **twice**. Run 1 (initial detector): 12/54 (22.2%), FPR 1/3974. Between runs I changed features and weights using only seen-register misses and calibration negatives, and moved the medium target from 1% to 0.5% calibration FPR (threshold 6.5 -> 5.5). Run 2 above is 26/54. Held-out misses were never inspected, but a second evaluation still makes the held-out number optimistic compared with a single pre-registered run.

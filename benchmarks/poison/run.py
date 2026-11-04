@@ -82,7 +82,7 @@ def evaluate(study: pathlib.Path) -> dict:
         for level in ("any", "medium", "high"):
             rank = {"low": 1, "medium": 2, "high": 3, "critical": 4}
             thr = 0 if level == "any" else rank[level]
-            hit = lambda r: r[1] is not None and (level == "any" or rank[r[1]] >= thr)  # noqa: E731
+            hit = lambda r: r[1] is not None and (level == "any" or rank[r[1]] >= thr)  # noqa: E731, B023 - used only within this iteration
             by = collections.defaultdict(lambda: [0, 0])
             for p, r in npos:
                 by[(p["register"], "all")][1] += 1

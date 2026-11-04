@@ -85,7 +85,7 @@ def scan_manifest_files(root: pathlib.Path, warnings: list[str] | None = None) -
             if not (isinstance(d, dict) and "server_name" in d and isinstance(d.get("tools"), list)):
                 continue
             m = ServerManifest.from_dict(d)
-        except Exception:
+        except Exception:  # noqa: S112 - skip malformed manifests, keep scanning
             continue
         for f in scan_descriptions(m) + check_scope(m):
             out.append(Finding("mcpaudit", f"{f.check}: {f.title}", f.severity.value, f.detail, _rel(p, root), 1))

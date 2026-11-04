@@ -3,6 +3,7 @@ from typer.testing import CliRunner
 from aisec.cli import app
 from aisec.modules import resolve_module
 
+
 def test_native_registry():
     for name in ("mcp", "memory", "rag", "training", "supply-chain", "behavior", "worm"):
         assert resolve_module(name).native is True
