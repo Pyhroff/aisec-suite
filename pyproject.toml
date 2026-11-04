@@ -48,6 +48,7 @@ ignore = ["B008", "UP045"]
 "research_preview/*" = ["S101"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 
 [tool.mypy]
 python_version = "3.10"
