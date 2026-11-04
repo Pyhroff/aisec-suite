@@ -5,7 +5,7 @@ Locks in the measured behaviour documented in README.md / docs/STUDY.md using on
 * recall on the 108 synthetic positives in ``benchmarks/poison/attacks.py`` (54 "seen", 54 "held-out"), and
 * false positives on ``tests/fixtures/benign_tools.json`` (66 realistic, deliberately hard benign descriptions).
 
-The 3,974-description real-world corpus from the study is not in the repo, so the 0.03% FPR headline is checked by
+The 3,974-description real-world corpus from the study is not in the repo, so the 0.05% FPR headline is checked by
 ``python -m benchmarks.poison.run``; this test guards against regressions that CI can see. If you improve the detector,
 raise the floors; if you lower one, explain why in the PR.
 """
@@ -17,9 +17,9 @@ from benchmarks.poison.attacks import POSITIVES
 
 BENIGN = json.loads((pathlib.Path(__file__).parent / "fixtures" / "benign_tools.json").read_text(encoding="utf-8"))
 
-# Measured at the time of writing: seen 34/54, held-out 26/54 (medium or higher).
-MIN_RECALL = {"seen": 34, "heldout": 26}
-MIN_HIGH_RECALL = {"seen": 11, "heldout": 7}
+# Measured at the time of writing: seen 40/54, held-out 29/54 (medium or higher); high: seen 20, held-out 9.
+MIN_RECALL = {"seen": 40, "heldout": 29}
+MIN_HIGH_RECALL = {"seen": 20, "heldout": 9}
 # Benign descriptions that are known to be flagged today (they quote credential/URL handling guidance). The set may
 # shrink but must never grow.
 KNOWN_FALSE_POSITIVES = {"http_request", "oauth_connect"}

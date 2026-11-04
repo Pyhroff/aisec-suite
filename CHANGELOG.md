@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- **Structural detector hardened against obfuscation** (`aisec/poison.py`, measured by the new `benchmarks/poison/evasion.py`): look-alike letters (Unicode confusables + a mixed-script hidden layer), hard-wrapped and bulleted text, letter-spacing, doubled whitespace, base64url/base32/`\uXXXX` encodings, sentence fragmentation (adjacent-sentence window) and instructions split between the description and a parameter (combined document). Seen attacks caught under look-alike letters: 4 -> 39 of 54. Recall at medium+: seen 63.0% -> 74.1%, held-out 48.1% -> 53.7% (third held-out evaluation, see `docs/STUDY.md`); test FPR 0.03% -> 0.05% (2/3,974). Medium threshold re-fitted by the calibration procedure, 5.5 -> 6.0. **Fix:** patterns with literal single spaces no longer miss text with doubled spaces.
+- **Evasion gate in CI** (`tests/test_poison_evasion.py`): per-transform retention floors plus unit tests for each new view and decoder.
 - **Breaking: demos moved out of the package.** `aisec experimental ...` is gone; the scripted demos now live in the top-level `research_preview/` package (not in the wheel) and run as `python -m research_preview wargame|guard-proxy|dashboard|remediate`.
 - **Detector quality gate in CI** (`tests/test_poison_quality.py`, `tests/fixtures/benign_tools.json`): recall floors on the 108 committed positives and a no-new-false-positives check on 66 realistic benign tool descriptions. Per-feature unit tests added in `tests/test_poison.py`; unused legacy weight/cap values removed from `aisec/poison.py`.
 - **Doc correction:** seen-register recall at medium+ reproduces as 63.0% (34/54), not 61.1%; held-out and high-severity figures unchanged.

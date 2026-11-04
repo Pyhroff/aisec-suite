@@ -13,13 +13,15 @@ I scanned **135 public MCP server repositories** (pinned commits, findings hand-
 | detector | recall, seen attacks | recall, held-out attacks | false-positive rate (3,974 real tool descriptions) |
 |---|---|---|---|
 | naive regex | 42.6% | **0.0%** | 0.0% |
-| **aisec structural detector** | 63.0% | **48.1%** | **0.03%** (1 / 3,974) |
+| **aisec structural detector** | 74.1% | **53.7%** | **0.05%** (2 / 3,974) |
 
-Pattern matching memorises its own examples and finds almost nothing new. Scoring decoded text structurally (hidden Unicode, base64/hex/entity decoding, co-occurrence of model-directed, data-flow and concealment cues) generalises much better, but it still misses about half of unseen attacks, so it is a review aid, not a security boundary. The same study raised mcpaudit's precision from 38.8% to 69.4% at 80.6% recall.
+Pattern matching memorises its own examples and finds almost nothing new. Scoring decoded text structurally (hidden Unicode, look-alike letters, base64/base32/hex/escape decoding, co-occurrence of model-directed, data-flow and concealment cues) generalises much better, but it still misses almost half of unseen attacks, so it is a review aid, not a security boundary.
+
+It also holds up against cheap obfuscation: of the seen attacks it catches, at least 87.5% are still caught after look-alike letters, hard-wrapping, letter-spacing, sentence fragmentation, splitting across fields or base32/escape encoding (the previous version kept 14.7% under look-alike letters). The same study raised mcpaudit's precision from 38.8% to 69.4% at 80.6% recall.
 
 Across 135 real MCP servers I found **no tool poisoning in the wild**. Unconstrained-scope findings were by-design capabilities, not vulnerabilities, which is why the gate is a review aid rather than a vulnerability scanner.
 
-Full method, confidence intervals and the caveats (including that the held-out set was evaluated twice) are in [`docs/STUDY.md`](docs/STUDY.md).
+Full method, confidence intervals and the caveats (including that the held-out set has now been evaluated three times) are in [`docs/STUDY.md`](docs/STUDY.md).
 
 ## Try it in two minutes
 
