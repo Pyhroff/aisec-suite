@@ -1,6 +1,8 @@
 # aisec-suite
 
 [![CI](https://github.com/Pyhroff/aisec-suite/actions/workflows/tests.yml/badge.svg)](https://github.com/Pyhroff/aisec-suite/actions/workflows/tests.yml)
+[![Benchmarks](https://github.com/Pyhroff/aisec-suite/actions/workflows/benchmarks.yml/badge.svg)](https://github.com/Pyhroff/aisec-suite/actions/workflows/benchmarks.yml)
+[![PyPI](https://img.shields.io/pypi/v/aisec-suite.svg)](https://pypi.org/project/aisec-suite/)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
@@ -18,6 +20,10 @@ I scanned **135 public MCP server repositories** (pinned commits, findings hand-
 Pattern matching memorises its own examples and finds almost nothing new. Scoring decoded text structurally (hidden Unicode, look-alike letters, base64/base32/hex/escape decoding, co-occurrence of model-directed, data-flow and concealment cues) generalises much better, but it still misses almost half of unseen attacks, so it is a review aid, not a security boundary.
 
 It also holds up against cheap obfuscation: of the seen attacks it catches, at least 87.5% are still caught after look-alike letters, hard-wrapping, letter-spacing, sentence fragmentation, splitting across fields or base32/escape encoding (the previous version kept 14.7% under look-alike letters). The same study raised mcpaudit's precision from 38.8% to 69.4% at 80.6% recall.
+
+Reachability (`--reach`) now follows commands across IPC bridges into engine-side scripts: on labelled findings it never wrongly cleared a real finding, and removed 4 of 30 unseen false positives (single-language reach removed none).
+
+Every number on this page is re-derived from public data weekly by the [benchmarks workflow](.github/workflows/benchmarks.yml), which fails if any of them moves.
 
 Across 135 real MCP servers I found **no tool poisoning in the wild**. Unconstrained-scope findings were by-design capabilities, not vulnerabilities, which is why the gate is a review aid rather than a vulnerability scanner.
 
@@ -121,7 +127,14 @@ ruff check . && mypy
 pytest -q -rs --cov     # -rs lists tests skipped because private scanners are absent
 ```
 
-CI runs the unit tests on Python 3.10-3.12 with in-memory fake scanners, plus an integration job that installs the published scanners (versions in `constraints.txt`). Detector quality is guarded by `tests/test_poison_quality.py`. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
+CI runs the unit tests on Python 3.10-3.13 with in-memory fake scanners, plus an integration job that installs the published scanners (versions in `constraints.txt`). Detector quality is guarded by `tests/test_poison_quality.py`. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+## Limitations
+
+- Static analysis of metadata and source: runtime behaviour, rug-pulls after review and attacks outside the implemented feature families are out of scope.
+- The poisoning detector misses almost half of held-out attacks; positives are synthetic and single-author (see `docs/STUDY.md` section 3).
+- Reachability is conservative: most findings stay `unknown`, and bridge resolution covers GDScript engines only.
+- A clean scan is not a security guarantee. Treat findings as review input, not verdicts.
 
 ## Upstream security work
 
