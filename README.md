@@ -17,6 +17,8 @@ I scanned **135 public MCP server repositories** (pinned commits, findings hand-
 | naive regex | 42.6% | **0.0%** | 0.0% |
 | **aisec structural detector** | 74.1% | **53.7%** | **0.05%** (2 / 3,974) |
 
+On attacks written by other people (MCPTox, 485 poisoned tools, pre-registered and run once) it catches **14.0%**, versus 6.8% for the naive regex, with no false positives on those servers' 362 real tools. See `docs/STUDY.md` section 3c.
+
 Pattern matching memorises its own examples and finds almost nothing new. Scoring decoded text structurally (hidden Unicode, look-alike letters, base64/base32/hex/escape decoding, co-occurrence of model-directed, data-flow and concealment cues) generalises much better, but it still misses almost half of unseen attacks, so it is a review aid, not a security boundary.
 
 It also holds up against cheap obfuscation: of the seen attacks it catches, at least 87.5% are still caught after look-alike letters, hard-wrapping, letter-spacing, sentence fragmentation, splitting across fields or base32/escape encoding (the previous version kept 14.7% under look-alike letters). The same study raised mcpaudit's precision from 38.8% to 69.4% at 80.6% recall.
