@@ -242,7 +242,7 @@ def _assess_bridge(tool: dict, texts: list[str], unresolved: list[str], complete
     root = tool.get("root")
     if not root:
         return None
-    sends = [(m, reach_bridge.resolve(m.group(2), root)) for t in texts for m in reach_bridge._JS_FORWARD.finditer(t)]
+    sends = [(m, reach_bridge.resolve(m.group(2), root)) for t in texts for m in reach_bridge.forwards(t)]
     bridged = [(m, r) for m, r in sends if reach_bridge.index(root).arms_for(m.group(2))]
     if not bridged:
         return None

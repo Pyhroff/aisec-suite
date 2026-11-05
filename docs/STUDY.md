@@ -36,8 +36,10 @@ every other JS-side callee resolved across files to sink-free code; otherwise th
 Findings with a decided verdict went from 7 to 18 of 120, still with zero wrong refutations; three accurate
 held-out findings gained engine-side evidence (e.g. `bridge 'http_request' -> mcp_interaction_server.gd:
 HTTPRequest.new()`). Limits: every refutation is in one repository (godot-mcp); the fresh set has no bridge server; the
-Unity server's engine-side C# plugin is not in its repository, so its findings stay `unknown` by design; only
-GDScript dispatchers are parsed. The precision gain is small and the intervals overlap. While the bridge was being
+Unity server's engine-side C# plugin is not in its repository, so its findings stay `unknown` by design; GDScript dispatchers and, since
+this revision, C# dispatchers (`switch`/`case` on a string and `{ "cmd", Handler }` tables, with `Class.Method` calls
+followed across files) are parsed; the C# support changes none of the study numbers above, because the study's
+Unity server does not ship its plugin. The precision gain is small and the intervals overlap. While the bridge was being
 built only dev rows were inspected, but an initial listing of per-row verdicts showed held-out labels for the two
 bridge repos before any code was written. Two incidental fixes in `reach_js`: `async (...) =>` is no longer mistaken
 for a call, and method signatures with function-typed parameters now resolve.
