@@ -144,9 +144,29 @@ and barely at all to attacks that redirect behaviour without touching secrets (m
 replies). It still beats both baselines and raised no false positive on the targeted servers' own tools. 14% is the
 number to quote for unseen attacks; the earlier figures measure the author's own attack style.
 
-**Deviation from the protocol.** MCP-Poison-Bench was not evaluated: its payloads are built in Python, and importing
-third-party code was refused in the evaluation environment. Extracting them without executing the module is left
-open.
+**MCP-Poison-Bench (second dataset, run once).** 109 payloads (all objectives, seen and held-out registers) at
+`944ccbb`. 23 are delivered in a tool *result* at runtime and are out of scope for a metadata scanner, leaving 86, each
+rendered as the benchmark's server exposes it (appended to the `calculate` description, as the `operation` parameter
+description, or as a shadow tool's description).
+
+| detector | recall (medium+) | seen register | held-out register |
+|---|---|---|---|
+| naive regex | 10.5% (9/86, CI 5.6-18.7) | 9/12 | 0/74 |
+| mcpaudit 0.8.0 description_scan | 9.3% (8/86) | 8/12 | 0/74 |
+| **aisec structural** | **14.0%** (12/86, CI 8.2-22.8) | **12/12** | **0/74** |
+
+Every detector catches the overt, imperative "seen" wording and **none** of the 74 held-out payloads, which the
+benchmark's author wrote as workflow, ledger and configuration prose with no imperative or authority cue. aisec is the
+only one that also catches the seen payloads hidden in a parameter description (3/3 schema-field vs 0 for both
+baselines). The held-out result is the clearest statement of this detector's limit: a static scanner keyed on
+instruction structure does not see an attack phrased as ordinary documentation. That needs a semantic layer (a
+classifier or an LLM judge) or runtime enforcement of what tools may receive, not more patterns.
+
+**Deviation from the protocol.** The protocol said MCP-Poison-Bench's `fixtures/payloads.py` would be imported. The
+evaluation environment refused to execute third-party code, so the file is read with `ast` and a minimal evaluator
+(literals, names, `+`, f-strings, `Payload(...)`, and a re-implementation of its 15-line register helper); nothing from
+the file runs. All 109 payloads were recovered (49 written out plus 60 from the register helper), and the extraction
+was checked for completeness before any detector was run on it.
 
 ## 4. Context
 
