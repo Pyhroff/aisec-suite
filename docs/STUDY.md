@@ -135,6 +135,13 @@ python -m benchmarks.poison.run --study <study> --json out.json
 python -m benchmarks.poison.evasion --json evasion.json
 ```
 
+All of the above is checked automatically: `.github/workflows/benchmarks.yml` checks out the public study data, fetches
+the 22 labelled repositories at their pinned SHAs (`benchmarks/fetch_corpus.py`; cloned and parsed, never executed)
+and runs `python -m benchmarks.check`, which compares 23 metrics (poisoning recall and false positives, evasion
+retention, reach refutations, accurate findings kept, wrong refutations) with `benchmarks/baseline.json`. It runs
+weekly and on pull requests that touch the detectors, and fails if any number moves: worse is a regression, better
+means the baseline and this page must be updated in the same change.
+
 ---
 
 ## 5. Research-preview modules (not evaluated to this standard)
