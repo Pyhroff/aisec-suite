@@ -168,6 +168,33 @@ evaluation environment refused to execute third-party code, so the file is read 
 the file runs. All 109 payloads were recovered (49 written out plus 60 from the register helper), and the extraction
 was checked for completeness before any detector was run on it.
 
+## 3d. A learned layer does not close the gap (pre-registered, negative result)
+
+Protocol committed before training: [`SEMANTIC_LAYER_PROTOCOL.md`](SEMANTIC_LAYER_PROTOCOL.md). A logistic-regression
+classifier over hashed word 1-2-grams was trained on every MCP-Poison-Bench payload (109, including the 74
+documentation-style held-out ones) and the 54 seen attacks, against 4,621 real tool texts from the calibration half
+and the benign fixtures. Its threshold (0.633) was fixed at the 99.5th percentile of out-of-fold scores on the training
+negatives, where out-of-fold recall was 70.8%. It was then scored once on data it never saw:
+
+| detector | MCPTox recall (medium+) | MCPTox FP | own held-out | FP on 3,974 real tools |
+|---|---|---|---|---|
+| structural (shipped) | 14.0% (68/485) | 0/362 | 29/54 | 0.05% (2) |
+| learned layer alone | 0.8% (4/485) | 1/362 | 37/54 | 2.89% (115) |
+| structural OR learned | 14.4% (70/485) | 1/362 | 44/54 | 2.94% (117) |
+
+**Reading.** The classifier learned the wording of its training attacks, not tool poisoning: on its own author's
+held-out register (written in the same style as the seen register) it adds 15 detections, and on MCPTox, written by
+other people, it adds 2 while its false-positive rate on real tool metadata rises 60-fold. The pre-registered rule
+(ship only if the combined false-positive rate stays at or below 1%) therefore keeps it out of the package. The code,
+model and scripts live in `research_preview/semantic.py`, `benchmarks/poison/semantic_train.py` and
+`semantic_eval.py` so the result can be reproduced.
+
+**What this says.** About 160 attack texts in two styles are not enough to learn what poisoning *means*. Closing the
+documentation-style gap needs either far more varied training data or a model that already understands instructions
+(an LLM judge), and that model's own false-positive rate on real tool metadata would need the same test. No MCPTox text
+was used in training; the one disclosed risk of contamination (knowing which MCPTox categories the structural detector
+missed) did not translate into any gain.
+
 ## 4. Context
 
 * MCPTox (arXiv 2508.14925): tool-poisoning attack taxonomy and measurements on real MCP servers.
