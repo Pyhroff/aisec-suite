@@ -76,7 +76,9 @@ _F = {  # feature -> patterns (per-sentence weights live in _W)
         r"<\s*/?\s*(?:important|system|instruction|instructions|assistant|admin|secret|override|hidden)\b|\[\s*(?:system|instruction|inst|assistant|important)\b[^\]]*\]|###\s*(?:new )?instructions?|<!--",
     ],
 }
-_CAT = {k: [re.compile(p, _I) for p in v] for k, v in _F.items()}
+# Bolt: Pre-compile combined per-category regexes so each category requires only a single regex search
+# rather than looping over individual compiled regex patterns per sentence. Order of _W is preserved.
+_CAT = {k: re.compile("|".join(f"(?:{p})" for p in _F[k]), _I) for k in _W}
 
 _INVISIBLE = re.compile("[​-‏‪-‮⁠-⁤⁦-⁩﻿­]")
 _TAG_BLOCK = re.compile("[\U000e0020-\U000e007e]+")
@@ -220,11 +222,15 @@ def views(text: str) -> tuple[list[str], list[str]]:
     for m in _ENT.finditer(stripped):
         decoded.append(html.unescape(m.group(0)))
         found.append("html-entities")
-    # rot13 only when it turns gibberish into text that actually scores
+    # rot13 only when it turns gibberish into text that actually scores.
+    # Bolt: Short-circuit when r13 score <= 1.0; since _score_view(w)[0] >= 0,
+    # r13 can only beat _score_view(w)[0] + 1 if r13 score is strictly > 1.0.
+    # This avoids expensive sentence scoring of clean English clauses.
     words = [w for w in re.findall(r"[A-Za-z]{3,}(?:\s+[A-Za-z]{2,}){4,}", stripped)]
     for w in words:
         r13 = codecs.decode(w, "rot13")
-        if _score_view(r13)[0] > _score_view(w)[0] + 1:
+        r13_score = _score_view(r13)[0]
+        if r13_score > 1.0 and r13_score > _score_view(w)[0] + 1:
             decoded.append(r13)
             found.append("rot13")
     out += decoded
@@ -235,7 +241,7 @@ _SENT = re.compile(r"(?<=[.!?;])\s+|\n+|\s[\u2014\u2013-]{1,2}\s|(?<=:)\s+")
 
 
 def _sentence_score(sent: str) -> tuple[float, list[str]]:
-    hit = [name for name in _W if any(rx.search(sent) for rx in _CAT[name])]
+    hit = [name for name, rx in _CAT.items() if rx.search(sent)]
     f = set(hit)
     s = sum(_W[n] for n in hit)
     # Co-occurrence inside ONE sentence is what separates an instruction to the model from long benign documentation:
