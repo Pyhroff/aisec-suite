@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased
+- **Negative result: learned poisoning layer** (`research_preview/semantic.py`, protocol `docs/SEMANTIC_LAYER_PROTOCOL.md`, results `docs/STUDY.md` section 3d). A hashed n-gram classifier trained on MCP-Poison-Bench and the seen register caught 0.8% of MCPTox at a 2.9% false-positive rate on real tool metadata; by the pre-registered rule it is not part of the package.
+
 ## 0.5.0
 - **External evaluation** (`benchmarks/poison/external.py`, protocol `docs/EXTERNAL_EVAL_PROTOCOL.md`), pre-registered and run once on two datasets written by other authors. MCPTox: 14.0% recall at medium+ on 485 poisoned tools, 0 false positives on the 362 legitimate tools of the same servers (naive regex 6.8%, mcpaudit 3.5%). MCP-Poison-Bench: 14.0% on 86 metadata payloads, 12/12 on its seen register and 0/74 on its held-out register (no baseline catches any held-out payload either). Results and limits in `docs/STUDY.md` section 3c.
 - **Unity bridge reachability** (`aisec/reach_bridge.py`): commands are now followed into C# editor plugins (`switch`/`case` dispatchers, `{ "cmd", Handler }` tables, `Class.Method` across files), and JS senders that pass the command as an object field (`sendRequest({ method: "cmd" })`) are recognised. Unresolved calls and reflection make no claim.
