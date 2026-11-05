@@ -17,7 +17,7 @@ I scanned **135 public MCP server repositories** (pinned commits, findings hand-
 | naive regex | 42.6% | **0.0%** | 0.0% |
 | **aisec structural detector** | 74.1% | **53.7%** | **0.05%** (2 / 3,974) |
 
-On attacks written by other people (MCPTox, 485 poisoned tools, pre-registered and run once) it catches **14.0%**, versus 6.8% for the naive regex, with no false positives on those servers' 362 real tools. See `docs/STUDY.md` section 3c.
+On attacks written by other people it catches **14.0%** of MCPTox (485 poisoned tools; naive regex 6.8%; no false positives on the servers' 362 real tools) and **14.0%** of MCP-Poison-Bench (86 metadata payloads; naive regex 10.5%). It catches none of MCP-Poison-Bench's 74 held-out payloads, which are phrased as ordinary documentation, and neither does any baseline. Both evaluations were pre-registered and run once; see `docs/STUDY.md` section 3c.
 
 Pattern matching memorises its own examples and finds almost nothing new. Scoring decoded text structurally (hidden Unicode, look-alike letters, base64/base32/hex/escape decoding, co-occurrence of model-directed, data-flow and concealment cues) generalises much better, but it still misses almost half of unseen attacks, so it is a review aid, not a security boundary.
 
