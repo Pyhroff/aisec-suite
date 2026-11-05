@@ -45,10 +45,11 @@ The demo scans a small MCP server whose `add` tool hides an instruction to read 
 | MCP tool descriptions, schemas, permission scope | `mcpaudit` + built-in structural detector and reachability (`--reach`) | **Published** (`pip install "aisec-suite[core]"`) |
 | Agent memory / context files (`CLAUDE.md`, `.cursorrules`, ...) | `memsentry` | **Published** |
 | RAG source documents | `ragsentry` | **Published** |
-| Fine-tuning datasets, agent traces, package installs, package worms | `trainsentry`, `loopcheck`, `agent-install-guardrail`, `wormsentry` | Private, adapters included, not on PyPI |
+| Fine-tuning datasets, agent traces | [`trainsentry`](https://github.com/Pyhroff/trainsentry), [`loopcheck`](https://github.com/Pyhroff/loopcheck) | Public source, not on PyPI; adapters included |
+| Package installs, package worms | `agent-install-guardrail`, `wormsentry` | Private, adapters included |
 | Model weights, inference receipts, activation traces, streaming side channels, formal checks of tool state machines | `weightspecter`, `attestinfer`, `circuitshield`, `tokenspecter`, `specprove-sec` | Research preview, private, evaluated only on synthetic fixtures |
 
-Only the published row is installable from PyPI today. Adapters for the other scanners activate when those packages are installed from source; otherwise the CLI reports them as unavailable instead of failing.
+Only the **Published** rows are installable from PyPI today. Adapters for the other scanners activate when those packages are installed from source; otherwise the CLI reports them as unavailable instead of failing.
 
 ## Usage
 
