@@ -47,7 +47,7 @@ def evaluate(version: str) -> dict:
                 g.observe_result(call.function)
         attacks = stopped = 0
         missed: collections.Counter[str] = collections.Counter()
-        for uid, task in sorted(suite.user_tasks.items()):
+        for _uid, task in sorted(suite.user_tasks.items()):
             for iid, inj in sorted(suite.injection_tasks.items()):
                 attacks += 1
                 g = RuntimeGuard(AGENTDOJO_POLICY, task.PROMPT)
