@@ -1,6 +1,8 @@
 # aisec-suite
 
 [![CI](https://github.com/Pyhroff/aisec-suite/actions/workflows/tests.yml/badge.svg)](https://github.com/Pyhroff/aisec-suite/actions/workflows/tests.yml)
+[![Benchmarks](https://github.com/Pyhroff/aisec-suite/actions/workflows/benchmarks.yml/badge.svg)](https://github.com/Pyhroff/aisec-suite/actions/workflows/benchmarks.yml)
+[![PyPI](https://img.shields.io/pypi/v/aisec-suite.svg)](https://pypi.org/project/aisec-suite/)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
@@ -13,13 +15,19 @@ I scanned **135 public MCP server repositories** (pinned commits, findings hand-
 | detector | recall, seen attacks | recall, held-out attacks | false-positive rate (3,974 real tool descriptions) |
 |---|---|---|---|
 | naive regex | 42.6% | **0.0%** | 0.0% |
-| **aisec structural detector** | 63.0% | **48.1%** | **0.03%** (1 / 3,974) |
+| **aisec structural detector** | 74.1% | **53.7%** | **0.05%** (2 / 3,974) |
 
-Pattern matching memorises its own examples and finds almost nothing new. Scoring decoded text structurally (hidden Unicode, base64/hex/entity decoding, co-occurrence of model-directed, data-flow and concealment cues) generalises much better, but it still misses about half of unseen attacks, so it is a review aid, not a security boundary. The same study raised mcpaudit's precision from 38.8% to 69.4% at 80.6% recall.
+Pattern matching memorises its own examples and finds almost nothing new. Scoring decoded text structurally (hidden Unicode, look-alike letters, base64/base32/hex/escape decoding, co-occurrence of model-directed, data-flow and concealment cues) generalises much better, but it still misses almost half of unseen attacks, so it is a review aid, not a security boundary.
+
+It also holds up against cheap obfuscation: of the seen attacks it catches, at least 87.5% are still caught after look-alike letters, hard-wrapping, letter-spacing, sentence fragmentation, splitting across fields or base32/escape encoding (the previous version kept 14.7% under look-alike letters). The same study raised mcpaudit's precision from 38.8% to 69.4% at 80.6% recall.
+
+Reachability (`--reach`) now follows commands across IPC bridges into engine-side scripts: on labelled findings it never wrongly cleared a real finding, and removed 4 of 30 unseen false positives (single-language reach removed none).
+
+Every number on this page is re-derived from public data weekly by the [benchmarks workflow](.github/workflows/benchmarks.yml), which fails if any of them moves.
 
 Across 135 real MCP servers I found **no tool poisoning in the wild**. Unconstrained-scope findings were by-design capabilities, not vulnerabilities, which is why the gate is a review aid rather than a vulnerability scanner.
 
-Full method, confidence intervals and the caveats (including that the held-out set was evaluated twice) are in [`docs/STUDY.md`](docs/STUDY.md).
+Full method, confidence intervals and the caveats (including that the held-out set has now been evaluated three times) are in [`docs/STUDY.md`](docs/STUDY.md).
 
 ## Try it in two minutes
 
@@ -37,10 +45,11 @@ The demo scans a small MCP server whose `add` tool hides an instruction to read 
 | MCP tool descriptions, schemas, permission scope | `mcpaudit` + built-in structural detector and reachability (`--reach`) | **Published** (`pip install "aisec-suite[core]"`) |
 | Agent memory / context files (`CLAUDE.md`, `.cursorrules`, ...) | `memsentry` | **Published** |
 | RAG source documents | `ragsentry` | **Published** |
-| Fine-tuning datasets, agent traces, package installs, package worms | `trainsentry`, `loopcheck`, `agent-install-guardrail`, `wormsentry` | Private, adapters included, not on PyPI |
+| Fine-tuning datasets, agent traces | [`trainsentry`](https://github.com/Pyhroff/trainsentry), [`loopcheck`](https://github.com/Pyhroff/loopcheck) | Public source, not on PyPI; adapters included |
+| Package installs, package worms | `agent-install-guardrail`, `wormsentry` | Private, adapters included |
 | Model weights, inference receipts, activation traces, streaming side channels, formal checks of tool state machines | `weightspecter`, `attestinfer`, `circuitshield`, `tokenspecter`, `specprove-sec` | Research preview, private, evaluated only on synthetic fixtures |
 
-Only the published row is installable from PyPI today. Adapters for the other scanners activate when those packages are installed from source; otherwise the CLI reports them as unavailable instead of failing.
+Only the **Published** rows are installable from PyPI today. Adapters for the other scanners activate when those packages are installed from source; otherwise the CLI reports them as unavailable instead of failing.
 
 ## Usage
 
@@ -119,7 +128,14 @@ ruff check . && mypy
 pytest -q -rs --cov     # -rs lists tests skipped because private scanners are absent
 ```
 
-CI runs the unit tests on Python 3.10-3.12 with in-memory fake scanners, plus an integration job that installs the published scanners (versions in `constraints.txt`). Detector quality is guarded by `tests/test_poison_quality.py`. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
+CI runs the unit tests on Python 3.10-3.13 with in-memory fake scanners, plus an integration job that installs the published scanners (versions in `constraints.txt`). Detector quality is guarded by `tests/test_poison_quality.py`. See [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+## Limitations
+
+- Static analysis of metadata and source: runtime behaviour, rug-pulls after review and attacks outside the implemented feature families are out of scope.
+- The poisoning detector misses almost half of held-out attacks; positives are synthetic and single-author (see `docs/STUDY.md` section 3).
+- Reachability is conservative: most findings stay `unknown`, and bridge resolution covers GDScript engines only.
+- A clean scan is not a security guarantee. Treat findings as review input, not verdicts.
 
 ## Upstream security work
 

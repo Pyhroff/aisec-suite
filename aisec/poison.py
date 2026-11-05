@@ -28,7 +28,7 @@ import urllib.parse
 from aisec.model import Finding
 
 # Fitted on the calibration half of the benchmark's real-tool negatives (see benchmarks/poison/calibrate.py):
-THRESHOLD_MEDIUM = 5.5
+THRESHOLD_MEDIUM = 6.0
 THRESHOLD_HIGH = 9.5
 
 _I = re.I
@@ -85,6 +85,54 @@ _HEX = re.compile(r"\b(?:[0-9a-fA-F]{2}\s?){16,}\b")
 _PCT = re.compile(r"(?:%[0-9a-fA-F]{2}){6,}")
 _ENT = re.compile(r"(?:&#\d{2,5};\s?){6,}|(?:&#x[0-9a-fA-F]{2,4};\s?){6,}")
 _BIDI = re.compile("‮([^‬]*)‬?")
+_B64URL = re.compile(r"(?<![A-Za-z0-9_-])[A-Za-z0-9_-]*[_-][A-Za-z0-9_-]*(?![A-Za-z0-9_-])")
+_B32 = re.compile(r"(?<![A-Z2-7])[A-Z2-7]{24,}=*(?![A-Z2-7])")
+_UESC = re.compile(r"(?:\\u[0-9a-fA-F]{4}){6,}|(?:\\x[0-9a-fA-F]{2}){6,}")
+
+# Latin look-alikes from other scripts (subset of Unicode confusables.txt: Cyrillic, Greek, Armenian, Latin
+# small-capital/IPA forms). NFKC does not fold these, so "аssistant" would otherwise not match "assistant".
+_CONFUSABLES = str.maketrans({
+    # Cyrillic lowercase
+    "а": "a", "б": "b", "в": "b", "с": "c", "ԁ": "d", "е": "e", "ё": "e", "ɡ": "g",
+    "һ": "h", "і": "i", "ї": "i", "ј": "j", "к": "k", "ӏ": "l", "м": "m", "п": "n",
+    "о": "o", "р": "p", "ԛ": "q", "г": "r", "ѕ": "s", "т": "t", "ц": "u", "ѵ": "v",
+    "ԝ": "w", "х": "x", "у": "y", "з": "z",
+    # Cyrillic uppercase
+    "А": "A", "В": "B", "С": "C", "Е": "E", "Н": "H", "І": "I", "Ј": "J", "К": "K",
+    "М": "M", "О": "O", "Р": "P", "Ѕ": "S", "Т": "T", "Х": "X", "У": "Y", "Ү": "Y",
+    # Greek
+    "α": "a", "β": "b", "ε": "e", "ι": "i", "κ": "k", "ν": "v", "ο": "o", "ρ": "p",
+    "τ": "t", "υ": "u", "χ": "x", "γ": "y", "Α": "A", "Β": "B", "Ε": "E", "Ζ": "Z",
+    "Η": "H", "Ι": "I", "Κ": "K", "Μ": "M", "Ν": "N", "Ο": "O", "Ρ": "P", "Τ": "T",
+    "Υ": "Y", "Χ": "X",
+    # Armenian
+    "ա": "a", "հ": "h", "ո": "n", "օ": "o", "ր": "n", "ս": "u", "զ": "q",
+    # Latin small capitals / IPA
+    "ᴀ": "a", "ʙ": "b", "ᴄ": "c", "ᴅ": "d", "ᴇ": "e", "ʜ": "h", "ɪ": "i", "ᴊ": "j",
+    "ᴋ": "k", "ʟ": "l", "ᴍ": "m", "ɴ": "n", "ᴏ": "o", "ᴘ": "p", "ʀ": "r", "ꜱ": "s",
+    "ᴛ": "t", "ᴜ": "u", "ᴠ": "v", "ᴡ": "w", "ʏ": "y", "ᴢ": "z",
+})
+_LATIN = re.compile(r"[A-Za-z]")
+_MIXED_WORD = re.compile(r"\w+")
+_SPACED = re.compile(r"\b(?:[A-Za-z] ){2,}[A-Za-z]\b")
+
+
+def _mixed_script(text: str) -> bool:
+    """A single word mixing Latin letters with look-alikes from another script (UTS #39 'mixed script confusable')."""
+    for w in _MIXED_WORD.findall(text):
+        if _LATIN.search(w) and w.translate(_CONFUSABLES) != w:
+            return True
+    return False
+
+
+def _canonical(text: str) -> str:
+    """Formatting-insensitive view: fold look-alikes, re-join spaced-out letters, reflow hard-wrapped lines and bullet
+    lists into running text, collapse whitespace. Blank lines still separate paragraphs."""
+    s = text.translate(_CONFUSABLES)
+    s = _SPACED.sub(lambda m: m.group(0).replace(" ", ""), s)
+    s = re.sub(r"\n[ \t]*[-*\u2022][ \t]+", ", ", s)
+    s = re.sub(r"(?<!\n)\n(?!\n)", " ", s)
+    return re.sub(r"[ \t]{2,}", " ", s).strip()
 
 
 def _printable_text(b: bytes) -> str | None:
@@ -113,8 +161,13 @@ def views(text: str) -> tuple[list[str], list[str]]:
         found.append("bidi-override")
         stripped += " " + m.group(1)[::-1]
     stripped = unicodedata.normalize("NFKC", stripped)
+    if _mixed_script(stripped):
+        found.append("mixed-script")
     if stripped != text:
         out.append(stripped)
+    canonical = _canonical(stripped)
+    if canonical not in out:
+        out.append(canonical)
     decoded: list[str] = []
     for m in _B64.finditer(stripped):
         try:
@@ -132,6 +185,34 @@ def views(text: str) -> tuple[list[str], list[str]]:
         if s:
             decoded.append(s)
             found.append("hex")
+    for m in _B64URL.finditer(stripped):
+        tok = m.group(0)
+        if len(tok) < 24:
+            continue
+        try:
+            s = _printable_text(base64.urlsafe_b64decode(tok + "=" * (-len(tok) % 4)))
+        except (binascii.Error, ValueError):
+            s = None
+        if s:
+            decoded.append(s)
+            found.append("base64url")
+    for m in _B32.finditer(stripped):
+        try:
+            body = m.group(0).rstrip("=")
+            s = _printable_text(base64.b32decode(body + "=" * (-len(body) % 8)))
+        except (binascii.Error, ValueError):
+            s = None
+        if s:
+            decoded.append(s)
+            found.append("base32")
+    for m in _UESC.finditer(stripped):
+        try:
+            s = m.group(0).encode("ascii").decode("unicode_escape")
+        except UnicodeDecodeError:
+            s = ""
+        if _printable_text(s.encode("utf-8")):
+            decoded.append(s)
+            found.append("escape-sequences")
     for m in _PCT.finditer(stripped):
         s = urllib.parse.unquote(m.group(0))
         decoded.append(s)
@@ -167,13 +248,25 @@ def _sentence_score(sent: str) -> tuple[float, list[str]]:
     return s, hit
 
 
+# Splitting one instruction into fragments ("Read ~/.ssh/id_rsa. Put it in notes.") must not dissolve the co-occurrence
+# signal, so adjacent sentence pairs are also scored, at a fixed discount (a priori, not fitted).
+WINDOW_PENALTY = 1.5
+
+
 def _score_view(text: str) -> tuple[float, list[str]]:
-    scored = sorted((_sentence_score(x) for x in _SENT.split(text) if x and x.strip()), key=lambda t: -t[0])
+    sents = [x for x in _SENT.split(text) if x and x.strip()]
+    scored = sorted((_sentence_score(x) for x in sents), key=lambda t: -t[0])
     if not scored:
         return 0.0, []
     best, feats = scored[0]
     rest = sum(sc for sc, _ in scored[1:3]) * 0.3   # a second hostile sentence adds a little; a long doc adds nothing
-    return best + min(rest, 2.0), feats
+    best += min(rest, 2.0)
+    # A pair can only win outright; it never feeds `rest` (that would double-count its own sentences).
+    for a, b in zip(sents, sents[1:], strict=False):
+        sc, f = _sentence_score(f"{a} {b}")
+        if sc - WINDOW_PENALTY > best:
+            best, feats = sc - WINDOW_PENALTY, f
+    return best, feats
 
 
 def score_text(text: str) -> tuple[float, list[str], list[str]]:
@@ -209,9 +302,20 @@ def _param_texts(schema: dict) -> list[tuple[str, str]]:
     return out
 
 
+def _parts(tool: dict) -> list[tuple[str, str]]:
+    """Every metadata text, plus the description and parameter descriptions read as one document, so an instruction
+    split across fields still meets the sentence-pair window at the field boundary."""
+    params = _param_texts(tool.get("input_schema", {}))
+    parts = [("description", tool.get("description", ""))] + params
+    prose = [t.strip().rstrip(".") for w, t in parts if (w == "description" or w.endswith(".description")) and t.strip()]
+    if len(prose) > 1:
+        parts.append(("description+parameters", ". ".join(prose) + "."))
+    return parts
+
+
 def detect(tool: dict) -> tuple[float, str | None]:
     """-> (score, severity or None) over the description and every parameter text; the max wins."""
-    parts = [("description", tool.get("description", ""))] + _param_texts(tool.get("input_schema", {}))
+    parts = _parts(tool)
     best = 0.0
     for _where, text in parts:
         if text:
@@ -221,7 +325,7 @@ def detect(tool: dict) -> tuple[float, str | None]:
 
 
 def explain(tool: dict) -> tuple[float, str | None, str]:
-    parts = [("description", tool.get("description", ""))] + _param_texts(tool.get("input_schema", {}))
+    parts = _parts(tool)
     best, where, feats = 0.0, "", []
     for w, text in parts:
         if text:

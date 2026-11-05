@@ -33,8 +33,9 @@ def _files(root: pathlib.Path, exts, include_tests: bool):
     """
     skip = set(_ALWAYS_SKIP) | (set() if include_tests else _TEST_DIRS)
     for dirpath, dirs, files in os.walk(root, followlinks=False):
-        dirs[:] = [d for d in dirs if d not in skip]
-        for name in files:
+        # Sorted so results do not depend on filesystem order: de-duplication keeps the first tool of a given name.
+        dirs[:] = sorted(d for d in dirs if d not in skip)
+        for name in sorted(files):
             ext = os.path.splitext(name)[1]
             if ext in exts:
                 if not include_tests and _TEST_FILE.search(name):
@@ -220,5 +221,5 @@ def extract_tools(root: str | pathlib.Path, include_tests: bool = False) -> list
         k = (t["name"], t["description"][:60])
         if k not in seen:
             seen.add(k)
-            uniq.append(t)
+            uniq.append({**t, "root": str(root)})   # lets reach follow calls into other files of the same repo
     return uniq
