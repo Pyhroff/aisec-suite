@@ -22,6 +22,18 @@
     {
       "scanner": "ragsentry",
       "file": "**/__pycache__/**"
+    },
+    {
+      "scanner": "ragsentry",
+      "file": "benchmarks/context_external.py"
+    },
+    {
+      "scanner": "ragsentry",
+      "file": "docs/CONTEXT_EVAL_PROTOCOL.md"
+    },
+    {
+      "scanner": "ragsentry",
+      "file": "docs/STUDY.md"
     }
   ]
 }
