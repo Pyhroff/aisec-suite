@@ -220,5 +220,5 @@ def extract_tools(root: str | pathlib.Path, include_tests: bool = False) -> list
         k = (t["name"], t["description"][:60])
         if k not in seen:
             seen.add(k)
-            uniq.append(t)
+            uniq.append({**t, "root": str(root)})   # lets reach follow calls into other files of the same repo
     return uniq

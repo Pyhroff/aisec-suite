@@ -18,7 +18,29 @@ Precision rose by cutting false positives on scope findings (vendored dirs, test
 `aisec/reach.py` (Python AST taint, depth-2 helper following) and `reach_js.py` (JS/TS, positive evidence only) classify a tool handler as `sink_unguarded`, `sink_guarded`, `no_sink` or `unknown`.
 
 * On 120 labelled findings it produced **zero wrong refutations** (a finding lowered by reach that was actually real).
-* It yields evidence on only about **9% of findings** and does **not** reduce false positives on this corpus. The dominant false-positive cluster (Unity/Godot bridge servers) forwards parameters to IPC calls reach cannot resolve, so the verdict is `unknown`.
+* Single-language reach decided only 7 of 120 findings (5.8%; an earlier revision of this page said "about 9%") and removed **no** false positives. The dominant false-positive cluster (Unity/Godot bridge servers) forwards parameters to an engine process over IPC, so the verdict was `unknown`.
+
+**Cross-language bridge reach (`aisec/reach_bridge.py`).** A TypeScript handler that sends a string-literal command
+(`this.gameCommand('get_property', args)`) is followed into the engine-side dispatcher in the same repository
+(GDScript `match command:` arms), through same-file helpers, and checked for command, file, network and dynamic-code
+sinks. A function called by at least 30% of the script's functions is treated as the reply channel, not a capability.
+A refutation needs the arm resolved uniquely, nothing dynamic (`callv`, `call`, `Expression`), nothing unresolved, and
+every other JS-side callee resolved across files to sink-free code; otherwise there is no claim.
+
+| set (labelled findings) | false positives removed | accurate kept | precision of findings still HIGH |
+|---|---|---|---|
+| dev (40, used to build it) | 0/13 -> **4/13** | 15/15 | 37.5% -> 41.7% |
+| held-out + fresh (80, evaluated once) | 0/30 -> **4/30** | **31/31** | 38.8% -> 40.8% (CI 30.4-52.0) |
+| all 120 | 0/43 -> 8/43 | 46/46 | 38.3% -> 41.1% |
+
+Findings with a decided verdict went from 7 to 18 of 120, still with zero wrong refutations; three accurate
+held-out findings gained engine-side evidence (e.g. `bridge 'http_request' -> mcp_interaction_server.gd:
+HTTPRequest.new()`). Limits: every refutation is in one repository (godot-mcp); the fresh set has no bridge server; the
+Unity server's engine-side C# plugin is not in its repository, so its findings stay `unknown` by design; only
+GDScript dispatchers are parsed. The precision gain is small and the intervals overlap. While the bridge was being
+built only dev rows were inspected, but an initial listing of per-row verdicts showed held-out labels for the two
+bridge repos before any code was written. Two incidental fixes in `reach_js`: `async (...) =>` is no longer mistaken
+for a call, and method signatures with function-typed parameters now resolve.
 * Rejected experiment: treating "no capability found in the handler" as refutation. It produced wrong refutations and was removed. Name-based guard detection (`validate_*`, `safe_*`) was removed for the same reason: it downgraded accurate findings. Guards now count only containment checks and allowlist membership.
 
 ## 3. Tool-poisoning detection benchmark

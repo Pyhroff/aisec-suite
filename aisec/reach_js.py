@@ -9,10 +9,12 @@ from __future__ import annotations
 
 import re
 
+from aisec import reach_bridge
 from aisec.reach import Reach
 
 MAX_SCAN = 30_000
-_KEYWORDS = {"if", "for", "while", "switch", "catch", "function", "return", "typeof", "await", "new", "else", "do", "try"}
+_KEYWORDS = {"if", "for", "while", "switch", "catch", "function", "return", "typeof", "await", "new", "else", "do", "try",
+             "async"}   # `async (args) => ...` is an arrow function, not a call
 _CONTAINERS = {"args", "params", "input", "request", "req", "options", "opts", "arguments", "payload", "data", "body", "ctx"}
 
 _SINKS = {
@@ -20,6 +22,7 @@ _SINKS = {
                      r"readdir|readdirSync|unlink|unlinkSync|rmSync|rm|rename|renameSync|mkdir|mkdirSync|copyFile|copyFileSync|cp|cpSync|"
                      r"opendir|readTextFile|writeTextFile|truncate|chmod|symlink)\s*\("),
     "exec": re.compile(r"\b(?:exec|execSync|execFile|execFileSync|spawn|spawnSync|fork|eval|execa|execaSync|runInNewContext|"
+                       r"execAsync|execFileAsync|spawnAsync|"   # util.promisify(exec/execFile) wrappers
                        r"runInThisContext|Bun\.spawn|Deno\.run)\s*\(|\bnew\s+Function\s*\("),
     "net": re.compile(r"\b(?:fetch|axios(?:\.\w+)?|got|ky|superagent|needle|https?\.(?:request|get)|undici\.\w+)\s*\("),
 }
@@ -28,7 +31,7 @@ _CONTAIN = re.compile(r"isPathInside|assertInside|path\.relative\([^)]*\)[\s\S]{
                       r"(?:allowed\w*|ALLOWED\w*|whitelist\w*|allowlist\w*)\.(?:includes|has|some)\(|"
                       r"new URL\([^)]*\)[\s\S]{0,160}\.(?:hostname|host)\b")
 _GUARD = _CONTAIN
-_SAFE_CALL = re.compile(r"^(?:path\.\w+|JSON\.\w+|String|Number|Boolean|parseInt|parseFloat|Array\.\w+|Object\.\w+|console\.\w+|"
+_SAFE_CALL = re.compile(r"^(?:path\.\w+|JSON\.\w+|String|Number|Boolean|parseInt|parseFloat|Array\.\w+|Object\.\w+|Object\.prototype\.\w+\.(?:call|apply)|console\.\w+|"
                         r"logger\.\w+|log\.\w+|Math\.\w+|encodeURIComponent|decodeURIComponent|encodeURI|z\.\w+|existsSync|"
                         r"Error|TypeError|RangeError|Promise\.\w+|Date\.\w+|Buffer\.\w+|URL|resolve|join|basename|dirname|extname|"
                         r"normalize|relative|isAbsolute|require|import|expect|typeof|void)$")
@@ -67,7 +70,8 @@ def _balanced(src: str, start: int, open_c: str = "{", close_c: str = "}") -> st
 _FN_DEFS = [
     re.compile(r"(?:async\s+)?function\s*\*?\s*(\w+)\s*(?:<[^>]*>)?\s*\(([^)]*)\)\s*(?::[^{=]+)?\{"),
     re.compile(r"(?:const|let|var)\s+(\w+)\s*(?::[^=]+)?=\s*(?:async\s*)?(?:function\b[^(]*)?\(([^)]*)\)\s*(?::[^={]+)?(?:=>)?\s*\{"),
-    re.compile(r"^[ \t]*(?:(?:private|public|protected|static|async|readonly)\s+)*(\w+)\s*(?:<[^>]*>)?\s*\(([^)]*)\)\s*(?::[^{;=]+)?\{", re.M),
+    # parameter lists may contain one level of parentheses, e.g. `argsFn: (a: any) => Record<string, any>`
+    re.compile(r"^[ \t]*(?:(?:private|public|protected|static|async|readonly)\s+)*(\w+)\s*(?:<[^>]*>)?\s*\(((?:[^()]|\([^()]*\))*)\)\s*(?::[^{;=]+)?\{", re.M),
 ]
 
 
@@ -195,6 +199,76 @@ def assess(tool: dict) -> Reach:
     if kinds:
         guarded = bool(_GUARD.search("\n".join(texts)))
         return Reach("sink_guarded" if guarded else "sink_unguarded", sorted(kinds), ev)
+    bridged = _assess_bridge(tool, texts, unresolved, complete)
+    if bridged is not None:
+        return bridged
     # Deliberately never "no_sink" for JS/TS: handler resolution here is regex-level, and a wrong refutation (calling a
     # real hole "declared capability only") is worse than saying "unverified". Absence of evidence is not evidence.
     return Reach("unknown", forwarded=unresolved)
+
+
+_REPO_FUNCS: dict[str, dict] = {}
+
+
+def _repo_functions(root: str) -> dict:
+    """Function index over the repository's JS/TS sources (bounded), for helpers imported from other files."""
+    if root not in _REPO_FUNCS:
+        import pathlib
+
+        out: dict = {}
+        files = 0
+        for p in sorted(pathlib.Path(root).rglob("*")):
+            if files >= 400 or p.suffix not in (".ts", ".js", ".mjs", ".tsx") or "node_modules" in p.parts or p.is_symlink():
+                continue
+            try:
+                if p.stat().st_size > 1_000_000:
+                    continue
+                for name, fn in functions(p.read_text(encoding="utf-8", errors="ignore")).items():
+                    out.setdefault(name, fn)
+            except OSError:
+                continue
+            files += 1
+        _REPO_FUNCS[root] = out
+    return _REPO_FUNCS[root]
+
+
+def _assess_bridge(tool: dict, texts: list[str], unresolved: list[str], complete: bool) -> Reach | None:
+    """Follow string-literal commands sent across an IPC bridge into engine-side scripts (see aisec/reach_bridge.py).
+
+    Returns None (no claim) unless at least one literal resolves to an engine-side dispatcher arm. A sink there is
+    evidence for the finding. A refutation (no_sink) additionally needs every literal fully resolved, and the handler
+    with the bridge calls removed to have no sink and no callee left unresolved (followed across files).
+    """
+    root = tool.get("root")
+    if not root:
+        return None
+    sends = [(m, reach_bridge.resolve(m.group(2), root)) for t in texts for m in reach_bridge._JS_FORWARD.finditer(t)]
+    bridged = [(m, r) for m, r in sends if reach_bridge.index(root).arms_for(m.group(2))]
+    if not bridged:
+        return None
+    results = list({r.literal: r for _m, r in bridged}.values())
+    kinds = sorted({k for r in results for k in r.kinds})
+    if kinds:
+        return Reach("sink_unguarded", kinds, [e for r in results for e in r.evidence])
+    if not complete or not all(r.complete for r in results):
+        return None
+    senders = {m.group(1) for m, _r in bridged}
+    # The bridge sender is transport: what crosses it was judged on the engine side above. Neutralise it wherever the
+    # analysis reaches it (directly or inside a helper) by giving it an empty body.
+    params = {p for p in tool.get("input_schema", {}).get("properties", {}) if re.fullmatch(r"[\w$]+", p)}
+    repo = _repo_functions(root)
+    index_fns = {**repo, **functions(tool.get("module_src") or ""), **{name: ([], "{}") for name in senders}}
+    left: set[str] = set()
+    for t in texts:
+        k, _e, u = analyse_text(t, params, index_fns)
+        if k:
+            return None   # a JS-side sink outside the bridge call: not ours to refute
+        left |= {x.split(".")[-1] for x in u}
+    for name in left - senders:
+        fn = index_fns.get(name)
+        if fn is None:
+            return None
+        k, _e, u = analyse_text(fn[1], set(fn[0]) | params, index_fns, depth=1)
+        if k or [x for x in u if x.split(".")[-1] != name]:   # a helper calling itself is still fully resolved
+            return None
+    return Reach("no_sink", [], [f"bridge '{r.literal}': engine-side handler resolved, no file/command/network sink" for r in results])
