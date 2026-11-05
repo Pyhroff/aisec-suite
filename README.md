@@ -136,7 +136,7 @@ CI runs the unit tests on Python 3.10-3.13 with in-memory fake scanners, plus an
 
 - Static analysis of metadata and source: runtime behaviour, rug-pulls after review and attacks outside the implemented feature families are out of scope.
 - The poisoning detector misses almost half of held-out attacks; positives are synthetic and single-author (see `docs/STUDY.md` section 3).
-- Reachability is conservative: most findings stay `unknown`, and bridge resolution covers GDScript engines only.
+- Reachability is conservative: most findings stay `unknown`, and bridge resolution covers GDScript (Godot) and C# (Unity editor plugins) dispatchers only. A Unity server whose C# plugin is not in the same repository stays `unknown`.
 - A clean scan is not a security guarantee. Treat findings as review input, not verdicts.
 
 ## Upstream security work
