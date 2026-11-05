@@ -228,6 +228,42 @@ document that asks an agent to do something harmful in polite, ordinary language
 that is the same as for tool poisoning (section 3d): limit what the agent can do with what it reads, rather than trying
 to recognise hostile intent in text.
 
+## 3f. A provenance guard on AgentDojo (pre-registered, run once)
+
+Protocol and guard committed before the run: [`GUARD_EVAL_PROTOCOL.md`](GUARD_EVAL_PROTOCOL.md),
+`aisec/runtime_guard.py`. The guard does not read intent from text. After the agent has read any tool output, it holds
+a call for confirmation when a destination (recipient, IBAN, address, URL) was not named by the user, or when a
+destructive or account-changing tool runs without the user asking for that kind of action. Its AgentDojo policy was
+written from the tool signatures alone. AgentDojo v1.2.2 (`agentdojo==0.1.35`, MIT): each user task's and each injection
+task's ground-truth tool calls were replayed through it. No model is involved, so these numbers bound what the policy
+can stop and what it costs on these tasks; they are not attack-success rates against a live agent.
+
+| suite | attacks stopped (pairs) | benign tasks held for confirmation |
+|---|---|---|
+| banking | 99.3% (143/144) | 12.5% (2/16) |
+| slack | 95.2% (100/105) | 66.7% (14/21) |
+| travel | 42.1% (59/140) | 0% (0/20) |
+| workspace | 42.5% (238/560) | 15.0% (6/40) |
+| **overall** | **56.9%** (540/949) | **22.7%** (22/97) |
+
+**Reading.** Where the attack's goal is to send something somewhere (banking, slack), provenance stops nearly all of it
+without understanding a word of the injection. The headline 56.9% is the pre-registered number, but most of the gap is
+measurement: 9 of AgentDojo's 35 injection tasks (8 in workspace, 1 in travel) ship no ground-truth calls, so there is
+nothing to hold and they count as not stopped. Over the 609 pairs whose attack has calls, the guard holds 540 (88.7%;
+workspace 238/240). What it truly misses are attacks with no destination: travel's "reserve this hotel" and "add a
+calendar event" goals are actions the policy does not treat as consequential.
+
+**The cost is real.** 22 of 97 benign tasks would ask the user to confirm a step, almost all because the task's own
+destination came from data the agent read: a payee IBAN from a bill, a URL or colleague named in a Slack message,
+attendees taken from an email. Slack is worst (14/21), because its tasks are built on following links and names found in
+messages. An operator allow-list of known contacts and payees (empty here, by protocol) is the obvious lever, and it is
+a trade an operator makes knowingly, unlike a detector's silent misses.
+
+**Compared with sections 3c-3e.** The text scanners caught 0-14% of attacks written by others. A ten-line provenance
+rule, written without seeing a single attack, holds most attacks that move data or money, at the price of asking the
+user about roughly one task in five. That is the direction this suite now takes: `aisec.runtime_guard` ships as a
+library for agent hosts; the scanners stay as cheap filters for careless attacks.
+
 ## 4. Context
 
 * MCPTox (arXiv 2508.14925): tool-poisoning attack taxonomy and measurements on real MCP servers.

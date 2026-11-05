@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- **Runtime guard** (`aisec/runtime_guard.py`): holds tool calls whose destination or destructive action did not come from the user, once the agent has read tool output. On AgentDojo v1.2.2 ground truth: 88.7% of attacks with calls held (56.9% of all pairs, pre-registered), 22.7% of benign tasks need a confirmation (`docs/STUDY.md` section 3f).
+- **External evaluation of memsentry and ragsentry** (BIPIA, InjecAgent; section 3e).
 - **Negative result: learned poisoning layer** (`research_preview/semantic.py`, protocol `docs/SEMANTIC_LAYER_PROTOCOL.md`, results `docs/STUDY.md` section 3d). A hashed n-gram classifier trained on MCP-Poison-Bench and the seen register caught 0.8% of MCPTox at a 2.9% false-positive rate on real tool metadata; by the pre-registered rule it is not part of the package.
 
 ## 0.5.0
