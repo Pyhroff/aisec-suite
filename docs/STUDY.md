@@ -120,6 +120,32 @@ the confusables table is broader than the transform's (Armenian, small capitals,
 Unicode list. Paraphrase is still the dominant failure mode (section 3), and an attacker who reads the source can still
 write an instruction that avoids every feature.
 
+## 3c. External evaluation on MCPTox (pre-registered, run once)
+
+Protocol committed before the run: [`EXTERNAL_EVAL_PROTOCOL.md`](EXTERNAL_EVAL_PROTOCOL.md). Detector at master
+`ffc5b58`, thresholds unchanged. Data: MCPTox (Wang et al., AAAI 2026) at `f85189f`, 485 poisoned tool descriptions
+written by other authors against 45 real MCP servers, and those servers' 362 legitimate tools as negatives.
+
+| detector | recall (medium+) | recall (high) | false positives (medium+) |
+|---|---|---|---|
+| naive regex | 6.8% (33/485, CI 4.9-9.4) | 6.8% | 0.0% (0/362) |
+| mcpaudit 0.8.0 description_scan | 3.5% (17/485) | 3.3% | 6.35% (23/362) |
+| **aisec structural** | **14.0% (68/485, CI 11.2-17.4)** | 1.6% | **0.0% (0/362)** |
+
+By MCPTox paradigm: Template-1 22.1%, Template-2 16.9%, Template-3 8.9%. By risk: credential leakage 67.5% (27/40),
+infrastructure damage 22.0%, privacy leakage 17.5%, but information manipulation 3.7% (4/108), service disruption
+1.4% (1/73) and message hijacking 0/15.
+
+**Reading.** On attacks someone else wrote, recall falls from 53.7% (own held-out register) to 14.0%. The detector
+generalises to exfiltration-shaped attacks (sensitive data plus a data flow), which its features were built around,
+and barely at all to attacks that redirect behaviour without touching secrets (misinforming, disrupting, hijacking
+replies). It still beats both baselines and raised no false positive on the targeted servers' own tools. 14% is the
+number to quote for unseen attacks; the earlier figures measure the author's own attack style.
+
+**Deviation from the protocol.** MCP-Poison-Bench was not evaluated: its payloads are built in Python, and importing
+third-party code was refused in the evaluation environment. Extracting them without executing the module is left
+open.
+
 ## 4. Context
 
 * MCPTox (arXiv 2508.14925): tool-poisoning attack taxonomy and measurements on real MCP servers.
@@ -133,6 +159,7 @@ python -m benchmarks.eval_reach --study <study> --corpus <study>/corpus --json o
 python -m benchmarks.poison.calibrate --study <study>
 python -m benchmarks.poison.run --study <study> --json out.json
 python -m benchmarks.poison.evasion --json evasion.json
+python -m benchmarks.poison.external --data <dir> --fetch && python -m benchmarks.poison.external --data <dir>
 ```
 
 All of the above is checked automatically: `.github/workflows/benchmarks.yml` checks out the public study data, fetches
