@@ -259,7 +259,7 @@ attendees taken from an email. Slack is worst (14/21), because its tasks are bui
 messages. An operator allow-list of known contacts and payees (empty here, by protocol) is the obvious lever, and it is
 a trade an operator makes knowingly, unlike a detector's silent misses.
 
-**Compared with sections 3c-3e.** The text scanners caught 0-14% of attacks written by others. A ten-line provenance
+**Compared with sections 3c-3e.** The text scanners caught 0-14% of attacks written by others. A short provenance
 rule, written without seeing a single attack, holds most attacks that move data or money, at the price of asking the
 user about roughly one task in five. That is the direction this suite now takes: `aisec.runtime_guard` ships as a
 library for agent hosts; the scanners stay as cheap filters for careless attacks.
