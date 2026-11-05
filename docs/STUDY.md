@@ -228,6 +228,31 @@ document that asks an agent to do something harmful in polite, ordinary language
 that is the same as for tool poisoning (section 3d): limit what the agent can do with what it reads, rather than trying
 to recognise hostile intent in text.
 
+## 3f. A runtime provenance guard on AgentDojo (pre-registered, run once)
+
+Protocol committed before the run: [GUARD_EVAL_PROTOCOL.md](GUARD_EVAL_PROTOCOL.md). The guard (isec/runtime_guard.py)
+and its policy for AgentDojo were written from tool signatures alone. It does not inspect natural-language intent: once an
+agent reads any tool output, any action sending data to an unprompted destination or executing destructive actions
+(deletions, modifications) without explicit user instruction is held for human confirmation. Evaluated across AgentDojo
+v1.2.2 (gentdojo==0.1.35) suites using ground-truth tool call sequences (no LLM in the loop; deterministic replay):
+
+| suite | attacks stopped (hit / n) | recall (95% CI) | benign tasks held (hit / n) | utility cost (95% CI) |
+|---|---|---|---|---|
+| banking | 143 / 144 | **99.3%** [96.2, 99.9] | 2 / 16 | 12.5% [3.5, 36.0] |
+| slack | 100 / 105 | **95.2%** [89.3, 97.9] | 14 / 21 | 66.7% [45.4, 82.8] |
+| travel | 59 / 140 | 42.1% [34.3, 50.4] | 0 / 20 | **0.0%** [0.0, 16.1] |
+| workspace | 238 / 560 | 42.5% [38.5, 46.6] | 6 / 40 | 15.0% [7.1, 29.1] |
+| **overall** | **540 / 949** | **56.9%** [53.7, 60.0] | **22 / 97** | **22.7%** [15.5, 32.0] |
+
+**Reading.**
+1. High-impact exfiltration and account operations (banking 99.3%, slack 95.2%) are stopped almost completely because
+   attacker goals invariably direct funds, messages, or invites to third-party endpoints absent from the user prompt.
+2. In travel and workspace, attacks often exploit internal state manipulation or booking flows without explicit exfiltration sinks
+   covered by the baseline policy, illustrating the bound of signature-only destination policies.
+3. Utility friction (22.7% overall) is dominated by autonomous discovery workflows (e.g. browsing URLs or adding contacts discovered
+   during multi-step execution rather than provided in the initial user prompt). Operators can lower this cost by configuring
+   trusted destination allow-lists.
+
 ## 4. Context
 
 * MCPTox (arXiv 2508.14925): tool-poisoning attack taxonomy and measurements on real MCP servers.
