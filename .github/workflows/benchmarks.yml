@@ -1,0 +1,49 @@
+name: benchmarks
+# Re-derives every measured claim in docs/STUDY.md from public data and fails if any number moves
+# (worse: a regression; better: update benchmarks/baseline.json and the docs that quote it).
+on:
+  schedule:
+    - cron: "37 3 * * 1"   # weekly, Monday 03:37 UTC
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "aisec/poison.py"
+      - "aisec/reach.py"
+      - "aisec/reach_js.py"
+      - "aisec/reach_bridge.py"
+      - "aisec/extract.py"
+      - "benchmarks/**"
+      - "constraints.txt"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: benchmarks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  benchmarks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      # Labelled study data (public): corpus SHAs, hand labels, extracted tool descriptions.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: Pyhroff/mcp-scan-study
+          path: study
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      - run: pip install -c constraints.txt -e ".[core,dev]"
+      # The 22 labelled repositories, pinned by SHA. Cloned and parsed only; never installed or executed.
+      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.0
+        with:
+          path: corpus
+          key: reach-corpus-${{ hashFiles('study/data/corpus.json', 'study/data/fresh_corpus.json', 'study/data/*sample*.json') }}
+      - run: python -m benchmarks.fetch_corpus --study study --out corpus
+      - run: python -m benchmarks.check --study study --corpus corpus

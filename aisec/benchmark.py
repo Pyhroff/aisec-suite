@@ -18,7 +18,7 @@ def run_range(range_dir: Path, metrics_json: Path | None = None) -> tuple[int, s
     cmd = [sys.executable, str(script)]
     if metrics_json:
         cmd += ["--metrics-json", str(metrics_json.resolve())]
-    proc = subprocess.run(cmd, cwd=range_dir, capture_output=True, text=True)
+    proc = subprocess.run(cmd, cwd=range_dir, capture_output=True, text=True)  # noqa: S603 - argv list, no shell
     return proc.returncode, proc.stdout + proc.stderr
 
 

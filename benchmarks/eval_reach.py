@@ -35,19 +35,14 @@ def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
     return (round(100 * (c - m) / d, 1), round(100 * (c + m) / d, 1))
 
 
-def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--study", required=True)
-    ap.add_argument("--corpus", required=True)
-    ap.add_argument("--json")
-    ap.add_argument("--strict", action="store_true", help="count only proven (sink_unguarded) findings as still HIGH")
-    a = ap.parse_args()
-    study, corpus = pathlib.Path(a.study) / "data", pathlib.Path(a.corpus)
-    labels = json.loads((study / "labels.json").read_text())
+def evaluate(study_dir: str | pathlib.Path, corpus_dir: str | pathlib.Path, strict: bool = False) -> dict:
+    """-> {"summary": {...}, "rows": [...]} for the 120 labelled findings."""
+    study, corpus = pathlib.Path(study_dir) / "data", pathlib.Path(corpus_dir)
+    labels = json.loads((study / "labels.json").read_text(encoding="utf-8"))
     cache: dict[str, list[dict]] = {}
     rows = []
     for setname, (lkey, fname) in SETS.items():
-        sample = json.loads((study / fname).read_text())
+        sample = json.loads((study / fname).read_text(encoding="utf-8"))
         for i, s in enumerate(sample):
             repo = s["repo"]
             if repo not in cache:
@@ -58,11 +53,11 @@ def main() -> None:
             r = reach.assess(t) if t else reach.Reach("unknown")
             rows.append(dict(set=setname, repo=repo, tool=s["tool"], label=labels[lkey][str(i)], found=t is not None,
                              verdict=r.verdict, kinds=r.kinds, evidence=r.evidence[:2]))
-    out = {"n": len(rows), "not_extracted": sum(not r["found"] for r in rows)}
+    out: dict = {"n": len(rows), "not_extracted": sum(not r["found"] for r in rows)}
     for scope, sel in (("all", rows), ("unseen (heldout+fresh)", [r for r in rows if r["set"] != "dev"]),
                        *((k, [r for r in rows if r["set"] == k]) for k in SETS)):
         before = collections.Counter(r["label"] for r in sel)
-        keep_verdicts = ("sink_unguarded",) if a.strict else ("sink_unguarded", "unknown")
+        keep_verdicts = ("sink_unguarded",) if strict else ("sink_unguarded", "unknown")
         kept = [r for r in sel if r["verdict"] in keep_verdicts]
         after = collections.Counter(r["label"] for r in kept)
         acc_b, acc_a = before["accurate"], after["accurate"]
@@ -75,8 +70,23 @@ def main() -> None:
             "accurate_retained": f"{acc_a}/{acc_b}",
             "recall_of_accurate_pct": round(100 * acc_a / acc_b, 1) if acc_b else None,
         }
+    # A wrong refutation: an accurate finding that reach lowered (no_sink or guarded).
+    out["wrong_refutations"] = sum(r["label"] == "accurate" and r["verdict"] in ("no_sink", "sink_guarded") for r in rows)
+    out["decided"] = sum(r["verdict"] != "unknown" for r in rows)
+    return {"summary": out, "rows": rows}
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--study", required=True)
+    ap.add_argument("--corpus", required=True)
+    ap.add_argument("--json")
+    ap.add_argument("--strict", action="store_true", help="count only proven (sink_unguarded) findings as still HIGH")
+    a = ap.parse_args()
+    result = evaluate(a.study, a.corpus, a.strict)
+    out, rows = result["summary"], result["rows"]
     if a.json:
-        pathlib.Path(a.json).write_text(json.dumps({"summary": out, "rows": rows}, indent=1))
+        pathlib.Path(a.json).write_text(json.dumps(result, indent=1), encoding="utf-8")
     print(json.dumps(out, indent=1))
     print("\nper-verdict x label:")
     tab = collections.Counter((r["verdict"], r["label"]) for r in rows)
