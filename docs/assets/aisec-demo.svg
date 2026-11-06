@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="194" font-family="monospace" font-size="13"><style>.l{opacity:0;animation:s .01s forwards}@keyframes s{to{opacity:1}}</style><rect width="900" height="194" rx="8" fill="#0d1117"/>
+<text class="l" style="animation-delay:0.0s" x="16" y="32" fill="#7ee787" xml:space="preserve">$ aisec scan examples/demo-mcp-server/vulnerable --sarif report.sarif</text>
+<text class="l" style="animation-delay:0.5s" x="16" y="54" fill="#c9d1d9" xml:space="preserve">tools extracted: 2 | findings: 3 (critical 0, high 3, medium 0, low 0)</text>
+<text class="l" style="animation-delay:1.0s" x="16" y="76" fill="#ff7b72" xml:space="preserve">  [high    ] server.py:13  aisec  structural_poisoning: model-directed content in tool metadata (description)</text>
+<text class="l" style="animation-delay:1.5s" x="16" y="98" fill="#ff7b72" xml:space="preserve">  [high    ] server.py:13  mcpaudit  description_scan: Model-directed instruction in description (embedded fake system</text>
+<text class="l" style="animation-delay:2.0s" x="16" y="120" fill="#ff7b72" xml:space="preserve">  [high    ] server.py:26  mcpaudit  permission_scope: Unscoped filesystem access</text>
+<text class="l" style="animation-delay:2.5s" x="16" y="142" fill="#7ee787" xml:space="preserve">$ echo $?</text>
+<text class="l" style="animation-delay:3.0s" x="16" y="164" fill="#c9d1d9" xml:space="preserve">1   # gate fails: SARIF written to report.sarif</text>
+</svg>
