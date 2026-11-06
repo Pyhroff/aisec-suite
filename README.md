@@ -8,6 +8,8 @@
 
 **A CI security gate for the inputs an AI agent trusts but code scanners ignore: MCP tool metadata, agent memory files and RAG documents.**
 
+![aisec scan demo](docs/assets/aisec-demo.svg)
+
 ## Headline result
 
 I scanned **135 public MCP server repositories** (pinned commits, findings hand-labelled) and built a tool-poisoning detector that I evaluated on attacks it was not developed against:
@@ -118,6 +120,14 @@ Latest release: **0.6.0** (PyPI: 0.2.0, 0.3.0, 0.4.0, 0.5.0, 0.6.0; earlier 2.x 
         policy / baseline lifecycle (new · existing · resolved)
                         │
         terminal · JSON · SARIF 2.1.0 · Markdown job summary · exit code
+```
+
+```mermaid
+flowchart LR
+  A["AI agent input<br/>MCP metadata · RAG docs · memory files"] --> B["AST & heuristic rules<br/>mcpaudit · memsentry · ragsentry"]
+  B --> C["Provenance guard"]
+  C --> D["Finding + policy/baseline"]
+  D --> E["SARIF 2.1.0 CI output<br/>exit code"]
 ```
 
 Design principles: static-first, never execute the scanned code, never follow symlinks out of the repo, fail closed on scanner crashes, and state measured limits next to every number.
