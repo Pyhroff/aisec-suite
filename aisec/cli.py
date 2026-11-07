@@ -31,6 +31,7 @@ from aisec.native_adapters import (
     scan_worm_tree,
 )
 from aisec.policy import PROFILES, apply_policy, load_policy, profile_policy, validate_policy
+from aisec.runtime_guard import AGENTDOJO_POLICY, Decision, GuardPolicy, RuntimeGuard
 from aisec.sarif import to_sarif
 from aisec.summary import to_markdown
 
@@ -338,6 +339,56 @@ def worm(
     fail_on: Optional[str] = typer.Option(None, "--fail-on"),
 ) -> None:
     _single_module("worm", path, json_out, sarif, fail_on)
+
+
+@app.command("guard-check")
+def guard_check(
+    request: str = typer.Option(..., "--request", "-r", help="Initial user prompt / request."),
+    tool: str = typer.Option(..., "--tool", "-t", help="Tool name to check."),
+    args_json: str = typer.Option("{}", "--args", "-a", help="Tool arguments as JSON string."),
+    tainted: bool = typer.Option(True, "--tainted/--untainted", help="Whether the agent has already read untrusted tool output."),
+    policy_file: Optional[pathlib.Path] = typer.Option(None, "--policy", exists=True, dir_okay=False, help="Custom GuardPolicy JSON file."),
+    trusted: list[str] = typer.Option([], "--trusted", help="Additional trusted destinations."),
+    json_out: bool = typer.Option(False, "--json", help="Output machine-readable JSON."),
+) -> None:
+    """Evaluate runtime data provenance for an agent tool call."""
+    try:
+        parsed_args = json.loads(args_json)
+        if not isinstance(parsed_args, dict):
+            raise ValueError("Tool arguments must be a JSON object")
+    except Exception as e:
+        raise typer.BadParameter(f"invalid --args JSON: {e}") from e
+
+    if policy_file:
+        try:
+            data = json.loads(policy_file.read_text(encoding="utf-8"))
+            policy = GuardPolicy(
+                sinks={k: tuple(v) for k, v in data.get("sinks", {}).items()},
+                actions={k: tuple(v) for k, v in data.get("actions", {}).items()},
+                trusted=frozenset(str(x).strip().lower().rstrip("/") for x in data.get("trusted", ())),
+            )
+        except Exception as e:
+            raise typer.BadParameter(f"cannot load guard policy from {policy_file}: {e}") from e
+    else:
+        policy = AGENTDOJO_POLICY
+
+    guard = RuntimeGuard(policy=policy, user_request=request, trusted=trusted)
+    if tainted:
+        guard.observe_result("pre-existing-untrusted-read")
+
+    decision: Decision = guard.check(tool, parsed_args)
+
+    if json_out:
+        typer.echo(json.dumps({"allow": decision.allow, "reason": decision.reason, "tool": tool, "args": parsed_args}))
+    else:
+        status = "ALLOW" if decision.allow else "HOLD"
+        msg = f"[{status}] {tool}"
+        if decision.reason:
+            msg += f" -> {decision.reason}"
+        typer.echo(msg)
+
+    if not decision.allow:
+        raise typer.Exit(code=1)
 
 
 @app.command("benchmark")
