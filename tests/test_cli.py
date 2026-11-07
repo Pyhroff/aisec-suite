@@ -94,3 +94,52 @@ def test_policy_init_refuses_overwrite(tmp_path):
     r = runner.invoke(app, ["policy", "init", str(path)])
     assert r.exit_code != 0
     assert "refusing to overwrite" in r.output
+
+
+def test_guard_check_cli_allows_legitimate_destination():
+    r = runner.invoke(
+        app,
+        [
+            "guard-check",
+            "-r", "Please send email to alice@company.com",
+            "-t", "send_email",
+            "-a", json.dumps({"recipients": ["alice@company.com"]}),
+        ],
+    )
+    assert r.exit_code == 0
+    assert "[ALLOW] send_email" in r.output
+
+
+def test_guard_check_cli_holds_exfiltration_and_outputs_json():
+    r = runner.invoke(
+        app,
+        [
+            "guard-check",
+            "-r", "Please send email to alice@company.com",
+            "-t", "send_email",
+            "-a", json.dumps({"recipients": ["attacker@evil.com"]}),
+            "--json",
+        ],
+    )
+    assert r.exit_code == 1
+    data = json.loads(r.output)
+    assert data["allow"] is False
+    assert "did not come from the user's request" in data["reason"]
+
+
+def test_guard_check_cli_custom_policy(tmp_path):
+    policy_file = tmp_path / "custom_guard.json"
+    policy_file.write_text(json.dumps({"sinks": {"post_api": ["endpoint"]}, "actions": {}}))
+    r = runner.invoke(
+        app,
+        [
+            "guard-check",
+            "-r", "Sync metrics to https://metrics.internal",
+            "-t", "post_api",
+            "-a", json.dumps({"endpoint": "https://attacker.org/exfil"}),
+            "--policy", str(policy_file),
+        ],
+    )
+    assert r.exit_code == 1
+    assert "[HOLD] post_api" in r.output
+
