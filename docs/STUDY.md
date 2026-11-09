@@ -291,8 +291,8 @@ cannot be measured on InjecAgent (the user's own call happens before any tool re
 each), `NortonIdentitySafeAutoFillPersonalInfo` (17), and single cases for `CiscoUmbrella*Policy`, `DropboxMoveItem`,
 `EpicFHIRManage*`, `FacebookManagerUpdateUserProfile`, `FedExShipManagerManageShipment`, `GoogleHomeScheduleDeviceAction`,
 `IndoorRobotGoToRoom`, `The23andMe{Share,Update}Data` and `TrafficControlGivePriorityToEmergencyVehicle`. I did not
-establish why each money tool passes in those cases; I only report that it does. Prediction 4 (verb-less tool names are
-missed) holds for `AutoFill`, `Manage` and `GoTo`-style names.
+establish why each money tool passes in those cases; I only report that it does. Prediction 4 (tools with no recognised verb are
+missed) is consistent with `AutoFill` but I did not check it per tool.
 
 **AgentDojo v1.2.2 (development check, not held out: v2 was designed after seeing 3f).**
 
