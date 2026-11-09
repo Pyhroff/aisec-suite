@@ -391,6 +391,28 @@ def guard_check(
         raise typer.Exit(code=1)
 
 
+@app.command("guard-mcp", context_settings={"allow_extra_args": True, "ignore_unknown_options": True})
+def guard_mcp(
+    ctx: typer.Context,
+    request: Optional[str] = typer.Option(None, "--request", "-r", help="The user's request for this session."),
+    request_file: Optional[pathlib.Path] = typer.Option(None, "--request-file", help="File holding the current user request; re-read on every call."),
+    trusted: list[str] = typer.Option([], "--trusted", help="Destinations always allowed (repeatable)."),
+    policy_file: Optional[pathlib.Path] = typer.Option(None, "--policy", exists=True, dir_okay=False, help="JSON with extra sinks/actions/trusted."),
+    log_file: Optional[pathlib.Path] = typer.Option(None, "--log", help="Append every guard decision here as JSON lines."),
+) -> None:
+    """Run an MCP server behind the runtime guard: aisec guard-mcp -r "..." -- <server command>."""
+    from aisec import mcp_guard
+
+    command = list(ctx.args)
+    if not command:
+        raise typer.BadParameter("give the MCP server command after --, e.g. aisec guard-mcp -r '...' -- python server.py")
+    if request is None and request_file is None:
+        raise typer.BadParameter("give the user's request with --request or --request-file")
+    session = mcp_guard.build_session(request, str(request_file) if request_file else None, trusted,
+                                      str(policy_file) if policy_file else None, str(log_file) if log_file else None)
+    raise typer.Exit(code=mcp_guard.run(command, session))
+
+
 @app.command("benchmark")
 def benchmark(
     range_dir: pathlib.Path = typer.Argument(..., exists=True, file_okay=False, help="agent-test-range checkout."),

@@ -67,6 +67,19 @@ aisec modules                                   # list scanners and whether each
 
 Exit codes with `--fail-on`: `0` nothing at or above the threshold, `1` findings at or above it, `2` a scanner crashed (reported as a warning, never mistaken for a finding).
 
+## Runtime guard for MCP servers
+
+Scanners catch careless attacks; the runtime guard holds the dangerous step whatever the wording. Put it in front of any
+MCP server: once the agent has read a tool result, calls that send data to a destination the user never named, or that
+delete or change things the user never asked to change, are not forwarded and the agent is told why.
+
+```bash
+aisec guard-mcp --request "Summarise my unread email" -- npx my-mcp-server
+```
+
+Runnable demo with the official MCP client: [`examples/guarded-mcp`](examples/guarded-mcp). Measured on AgentDojo in
+`docs/STUDY.md` section 3f.
+
 ## Reusable GitHub Action
 
 Use the bundled composite action to standardize the scanner in another workflow. The example pins the action itself to an immutable commit; update that SHA only when intentionally upgrading the action:
