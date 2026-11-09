@@ -56,7 +56,7 @@ _F = {  # feature -> patterns (per-sentence weights live in _W)
     "data_flow": [
         r"\b(?:include|pass|put|append|attach|add|send|forward|copy|upload|post|mirror|relay|route|embed|drop|fill|populate|supply|set|record|push|submit|quote|print|paste|store)\b"
         r"[^.\n]{0,90}\b(?:in|into|to|as|via|through|with|at|before)\b[^.\n]{0,45}\b(?:parameters?|arguments?|fields?|notes?|context|metadata|replies|reply|response|output|url|endpoint|server|email|address|webhook|inbox|account|remote|collector|service|bcc|cc)\b",
-        r"https?://[^\s)\]\"']+|\b[\w.+-]+@[\w-]+\.[\w.-]+\b",
+        r"https?://[^\s)\]\"']+|\b[\w.+-]{1,64}@[\w-]{1,255}\.[\w.-]{1,255}\b",
         r"\b(?:fill|populate|supply) ['\"`]?\w+['\"`]? (?:with|using)\b",
     ],
     "conceal": [
@@ -89,6 +89,9 @@ _ENT = re.compile(r"(?:&#\d{2,5};\s?){6,}|(?:&#x[0-9a-fA-F]{2,4};\s?){6,}")
 _BIDI = re.compile("‮([^‬]*)‬?")
 _B64URL = re.compile(r"(?<![A-Za-z0-9_-])[A-Za-z0-9_-]*[_-][A-Za-z0-9_-]*(?![A-Za-z0-9_-])")
 _B32 = re.compile(r"(?<![A-Z2-7])[A-Z2-7]{24,}=*(?![A-Z2-7])")
+# Runs of words that could be rot13 text. The lookbehind restricts matches to word starts: without it, a long unbroken
+# run of letters is retried from every position and backtracked in full each time (quadratic).
+_ROT13_CANDIDATE = re.compile(r"(?<![A-Za-z])[A-Za-z]{3,}(?:\s+[A-Za-z]{2,}){4,}")
 _UESC = re.compile(r"(?:\\u[0-9a-fA-F]{4}){6,}|(?:\\x[0-9a-fA-F]{2}){6,}")
 
 # Latin look-alikes from other scripts (subset of Unicode confusables.txt: Cyrillic, Greek, Armenian, Latin
@@ -236,7 +239,7 @@ def views(text: str) -> tuple[list[str], list[str]]:
     # Bolt: Short-circuit when r13 score <= 1.0; since _score_view(w)[0] >= 0,
     # r13 can only beat _score_view(w)[0] + 1 if r13 score is strictly > 1.0.
     # This avoids expensive sentence scoring of clean English clauses.
-    words = [w for w in re.findall(r"[A-Za-z]{3,}(?:\s+[A-Za-z]{2,}){4,}", stripped)]
+    words = _ROT13_CANDIDATE.findall(stripped)
     for w in words:
         r13 = codecs.decode(w, "rot13")
         r13_score = _score_view(r13)[0]

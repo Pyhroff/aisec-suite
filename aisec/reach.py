@@ -17,6 +17,7 @@ from __future__ import annotations
 import ast
 import re
 from dataclasses import dataclass, field
+from functools import lru_cache
 
 MAX_DEPTH = 2
 MAX_NODES = 20_000
@@ -163,13 +164,32 @@ def _is_safe_call(name: str) -> bool:
     return name.rsplit(".", 1)[-1] in _SAFE_METHODS and "." in name
 
 
+@lru_cache(maxsize=8)
+def _parsed_module(src: str):
+    """Parse a module and index its functions once. Every tool of a module shares one source string, and re-parsing and
+    re-walking the whole module per tool made a file with N tools cost N times its size. The tree is only read."""
+    try:
+        tree = ast.parse(src)
+    except Exception:  # SyntaxError, RecursionError, ValueError
+        return None
+    funcs: dict[str, list] = {}
+    by_key: dict[tuple[str, int], ast.AST] = {}
+    for n in ast.walk(tree):
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            funcs.setdefault(n.name, []).append(n)
+            by_key.setdefault((n.name, n.lineno), n)
+    return tree, funcs, by_key
+
+
 class _Ctx:
-    def __init__(self, tree: ast.AST, fname: str):
+    def __init__(self, tree: ast.AST, fname: str, funcs: dict[str, list] | None = None):
         self.fname = fname
-        self.funcs: dict[str, list] = {}
-        for n in ast.walk(tree):
-            if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                self.funcs.setdefault(n.name, []).append(n)
+        if funcs is None:
+            funcs = {}
+            for n in ast.walk(tree):
+                if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    funcs.setdefault(n.name, []).append(n)
+        self.funcs: dict[str, list] = funcs
         self.kinds: set[str] = set()
         self.evidence: list[str] = []
         self.guards: set[str] = set()
@@ -270,19 +290,17 @@ def _walk_fn(fn, tainted: set[str], ctx: _Ctx, depth: int) -> None:
 
 
 def assess_python(tool: dict) -> Reach:
-    src = tool.get("module_src") or ""
-    try:
-        tree = ast.parse(src)
-    except Exception:  # SyntaxError, RecursionError, ValueError
+    parsed = _parsed_module(tool.get("module_src") or "")
+    if parsed is None:
         return Reach("unknown")
-    fn = next((n for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))
-               and n.name == tool.get("handler") and n.lineno == tool.get("line")), None)
+    tree, funcs, by_key = parsed
+    fn = by_key.get((tool.get("handler"), tool.get("line")))
     if fn is None:
         return Reach("unknown")
     params = set(tool.get("input_schema", {}).get("properties", {}))
     if not params:
         return Reach("unknown")
-    ctx = _Ctx(tree, tool.get("file", "?"))
+    ctx = _Ctx(tree, tool.get("file", "?"), funcs)
     _walk_fn(fn, params, ctx, 0)
     if ctx.kinds:
         guarded = ctx.kinds <= ctx.guards
