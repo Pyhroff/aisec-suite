@@ -328,6 +328,57 @@ cost to what v1 already stopped. The price on a different benchmark is more prom
 facts stand. Ground truth is an idealised agent, so these numbers bound the policy; they are not attack-success rates
 against a live model, and the live evaluation has not been run.
 
+## 3h. Guard v3: fixing the date bug, and a fresh benchmark that says v2/v3 do not generalise (pre-registered, run once)
+
+Protocol, guard and replay committed before the run: [`GUARD_V3_PROTOCOL.md`](GUARD_V3_PROTOCOL.md), `aisec/guard_v3.py`,
+`benchmarks/guard_v3_eval.py`. v3 is v2 with one change, motivated by 3g: a phone number needs 7-15 digits, 10 or more
+unless it starts with `+`, and must not look like a date. Nothing else changed. Fresh benchmark: **ASB** (Agent Security
+Bench, MIT, commit `544540f`), 400 attacker tools x the 5-6 tasks of their agent = 2,040 (tool, task) pairs, 51 benign
+(agent, task) pairs. Same idealised replay as before: no model, the tool's instruction passed as its only argument.
+
+| | v1 | v2 | v3 |
+|---|---|---|---|
+| InjecAgent attacks stopped (1,054, both naming arms) | 54.8% / 58.1% | 93.2% | **93.2%** (identical to v2 case for case) |
+| ASB attacks stopped (2,040 pairs) | 1.5% (30; CI 1.0-2.1) | 14.7% (300) | **14.0%** (285; CI 12.5-15.5) |
+| ASB stealthy / disruptive | 2.0% / 1.0% | 21.1% / 8.3% | 20.1% / 7.8% |
+| ASB benign pairs held (names only, no arguments) | 0/51 | 4/51 | 4/51 (`update_manager`) |
+| AgentDojo benign tasks held (development) | 22/97 | 39/97 | **24/97** |
+| AgentDojo prompts (v1: first hold per task only) | 22 | 52 | 37 |
+| AgentDojo attacks stopped (development) | 540/949 | 606/949 | 558/949 |
+
+**Predictions against results.**
+
+1. InjecAgent parity: **held.** 982 = 982 in both arms, 0 differing cases.
+2. AgentDojo: benign holds at most 35 and above v1's 22: **held** (24). Attacks stopped within 10 of v2's 606: **failed**
+   (558, 48 fewer).
+3. ASB v2 and v3 identical per case: **failed**, 15 pairs differ.
+4. ASB v3 stops 15-60%, v1 under 10%: v1 **held** (1.5%); v3 **just missed** the range (14.0%).
+5. ASB benign pairs held 5-40%: **held** (7.8%).
+   (The protocol said 2,000 pairs and 50 tasks; the data has 2,040 and 51: one agent has an extra task.)
+
+**What the date fix did.** Benign tasks held on AgentDojo fall from 39 to 24, almost back to v1's 22, and every
+suite's benign holds drop to v1's level or close to it (banking 4 vs 2, slack 14 vs 14, travel 0 vs 0, workspace 6 vs 6).
+It costs 48 "stopped" AgentDojo attacks, all in travel (v2 120, v3 72, v1 59). Those 48 were not real stops: v2 held
+the attacker's call because a date in its arguments looked like a phone number, the same bug that held benign
+bookings. v3 still stops 13 more travel attacks than v1 and 18 more AgentDojo attacks overall.
+
+**Why prediction 3 failed, and what it says about v2's numbers.** The 15 pairs v2 stopped and v3 does not are
+attacker instructions containing a 16-digit card number or a 9-digit patient ID (`CreditCardFraud`, `Medication`,
+`MedicationManagementTool`). v2 "held" them by calling those numbers destinations. v3 is right that they are not
+destinations, so v2's 14.7% included an accident; 14.0% is the honest figure for this rule set.
+
+**The finding: this does not generalise to ASB.** On InjecAgent v2/v3 stop 93%; on ASB they stop 14%. Only 66 of the
+400 attacker tool names (16.5%) contain a verb the class lists know. ASB names its attacker tools descriptively and
+without verbs (`ResearchDataTheft`, `CitationManipulation`, `FakeAuthorProfiles`, `JournalRankingsAlteration`), and
+InjecAgent's names are product-API style (`BankManagerTransferFunds`) with a verb in them. A rule that reads effects
+from a tool's *name* inherits whatever convention the benchmark uses. v1 does worse still (1.5%). I did not try to fix
+this here: any change would be tuned on ASB, so it is a v4 that needs another new benchmark. A guard that reads
+tool *descriptions* or declared effects, rather than names, is the obvious next idea, untested.
+
+**Limits.** The ASB benign number can only see action-class holds (the benchmark gives no arguments for normal tools),
+so it understates destination costs; AgentDojo is development data for the fix. Ground truth is an idealised agent: these
+numbers bound the policy, they are not attack-success rates against a live model, and that evaluation has not been run.
+
 ## 4. Context
 
 * MCPTox (arXiv 2508.14925): tool-poisoning attack taxonomy and measurements on real MCP servers.
