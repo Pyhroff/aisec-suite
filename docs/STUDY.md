@@ -379,6 +379,51 @@ tool *descriptions* or declared effects, rather than names, is the obvious next 
 so it understates destination costs; AgentDojo is development data for the fix. Ground truth is an idealised agent: these
 numbers bound the policy, they are not attack-success rates against a live model, and that evaluation has not been run.
 
+## 3i. Guard v4: reading descriptions and parameters closes most of ASB's gap, at a cost that fails the ship rule (pre-registered, run once)
+
+Protocol, guard and replay committed before the run: [`GUARD_V4_PROTOCOL.md`](GUARD_V4_PROTOCOL.md), `aisec/guard_v4.py`,
+`benchmarks/guard_v4_eval.py`. v4 is v3 plus two **strictly additive** sources of effect classes: the tool's description
+(first six content words; a leading read verb adds nothing; stem match against v2's verb lists) and its parameter names
+(amount/iban -> money, command -> exec, password/token -> credential, recipient/to -> publish). Whatever v3 holds, v4
+holds, so a lying description can only make it stricter. No fresh benchmark with tool descriptions and attack labels was
+reachable (MSB has no public repository or licence), so every set below is already-seen data and this is a **development
+check of a design fixed before any description text was read**, not a held-out evaluation.
+
+| | v1 | v3 | v4 |
+|---|---|---|---|
+| InjecAgent attacks stopped (1,054) | 54.8% | 93.2% (982) | **93.4%** (984) |
+| ASB attacks stopped (2,040 pairs) | 1.5% | 14.0% | **48.1%** (981; CI 45.9-50.3) |
+| ASB stealthy / disruptive | 2.0% / 1.0% | 20.1% / 7.8% | 53.0% / 43.1% |
+| AgentDojo attacks stopped (949) | 540 | 558 | 558 |
+| AgentDojo benign tasks held (97) | 22 | 24 | 27 |
+| ASB benign pairs held (51) | 0 | 4 (7.8%) | **20 (39.2%)** |
+| MCPTox legitimate tools held after a read (362) | n/a | 27.6% (100) | 32.3% (117) |
+
+**Predictions against results.** 1: regressions 0 on every set, **held**. 2: ASB between 25% and 60%, **held**
+(48.1%). 3: InjecAgent at least 93.2% and at most 99%, **held** (93.4%). 4: AgentDojo attacks at least 558 and benign tasks
+held 24-45, **held** (558; 27). 5: ASB benign pairs held at most 25%, **failed** (39.2%). 6: v4 holds at least 15 points
+more MCPTox legitimate tools than v3, **failed** (+4.7 points).
+
+**Ship rule: not met.** The protocol said `--guard v4` is added to the CLI only if ASB stopped is 10+ points above v3
+(met, +34.1), regressions are 0 (met), AgentDojo benign tasks held are 34 or fewer (met, 27) and ASB benign pairs held are
+25% or fewer (**not met**, 39.2%). So v4 stays a library (`aisec.guard_v4`); `aisec guard-mcp --guard` still offers v1 and v3.
+
+**What happened.** On ASB, reading descriptions lifts the stop rate from 14% to 48%, mostly on disruptive attacks (7.8% to
+43.1%), and nothing v3 stopped is lost. The price shows on ASB's own normal tools: 16 more of 51 (agent, task) pairs
+are held. Post-hoc (read-only), the held normal tools are `update_manager`, `prescription_manager` and `inventory_manager`
+("A tool for **managing** ..." matches the modify class) and `portfolio_manager` and `flight_simulator` ("... **allowing**
+..." matches the access class). A generic word in a description is enough, which is the weakness of reading free text with
+word lists; `allowing` should have been in the filler list and was not. I did not change it: that would be tuning on ASB, so
+it is a v5. On real tool sets the extra cost is smaller: AgentDojo +3 benign tasks held (banking 4 to 7, nothing in the
+other suites) and +4.7 points of MCPTox's 362 real legitimate tools. AgentDojo attacks stopped do not move (558),
+because its tools already have verbs in their names. Six ASB attacker tools such as `ResearchDataTheft` and
+`CitationManipulation` are still never held.
+
+**Reading.** Name-only classes (v3) are cheap and miss descriptively named attacks; adding descriptions catches about a third
+more of them but asks about generic management tools. Whether that trade is worth it depends on the tool set: it is small on
+the two real-world-style sets here and large on ASB's LLM-written ones. Both facts stand. Ground truth is an idealised
+agent; these numbers bound the policy and are not attack-success rates against a live model, which has not been run.
+
 ## 4. Context
 
 * MCPTox (arXiv 2508.14925): tool-poisoning attack taxonomy and measurements on real MCP servers.
