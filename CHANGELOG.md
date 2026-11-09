@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased
+- **`aisec guard-mcp`** (`aisec/mcp_guard.py`): an MCP stdio proxy that applies the runtime guard to every `tools/call`, inferring sinks and destructive tools from the server's `tools/list`; held calls return an `isError` tool result with the reason. Demo with the official MCP client in `examples/guarded-mcp`.
+
 ## 0.6.0
 - **Runtime provenance guard** (`aisec/runtime_guard.py`): intercepts untrusted data flow and unauthorized actions after tool output has been read. Evaluated on the **AgentDojo** benchmark (`v1.2.2`, 949 attack pairs), stopping 99.3% of banking attacks and 95.2% of Slack attacks at 22.7% utility cost (`docs/STUDY.md` section 3f, protocol `docs/GUARD_EVAL_PROTOCOL.md`).
 - **External evaluation of memsentry & ragsentry** (`benchmarks/context/external.py`, protocol `docs/CONTEXT_EVAL_PROTOCOL.md`): pre-registered run on BIPIA and InjecAgent. Both catch the stock override phrase and 0-3% of plain requests without it (`docs/STUDY.md` section 3e).
