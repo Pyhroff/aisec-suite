@@ -38,6 +38,11 @@
     {
       "scanner": "ragsentry",
       "file": "tools/hostile_inputs.py"
+    },
+    {
+      "scanner": "ragsentry",
+      "rule": "*retrieval_manipulation",
+      "file": "*.py"
     }
   ]
 }
