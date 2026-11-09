@@ -80,6 +80,13 @@ aisec guard-mcp --request "Summarise my unread email" -- npx my-mcp-server
 Runnable demo with the official MCP client: [`examples/guarded-mcp`](examples/guarded-mcp). Measured on AgentDojo in
 `docs/STUDY.md` section 3f.
 
+`--guard v3` (also on `aisec guard-check`) switches to the newer engine: it sorts tools into effect classes (delete, pay,
+share, run, ...) by the verbs in their names and treats any email, URL, phone number or IBAN in any argument as a
+destination, with no policy to write. `v1` stays the default. Measured, with the misses: 93.2% of InjecAgent's 1,054
+attacks stopped (v1 54.8%), 14.0% of ASB's 2,040 (v1 1.5%), and on AgentDojo 24 of 97 benign tasks held for confirmation
+(v1 22). It reads names, so it misses attacks whose tool names contain no verb it knows (`docs/STUDY.md` sections 3g and
+3h). A policy file for v3 may only list `trusted` destinations.
+
 ## Reusable GitHub Action
 
 Use the bundled composite action to standardize the scanner in another workflow. The example pins the action itself to an immutable commit; update that SHA only when intentionally upgrading the action:
