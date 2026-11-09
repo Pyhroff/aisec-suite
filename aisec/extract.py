@@ -160,6 +160,17 @@ def _ts_tools(path: pathlib.Path, consts: dict) -> list[dict]:
             dd = re.search(r"description\s*:\s*" + _STR, win)
             if dd:
                 desc = _lit(dd)
+        if desc is None and end - m.end() > len(win):
+            # The description is longer than the window. Dropping the tool here would let a padded description
+            # hide a tool from every check, so look for it up to the next registration (bounded by the file cap).
+            wide = t[m.end(): min(end, m.end() + _MAX_SRC)]
+            dm = None if wide.startswith("{") else re.match(r"(?:" + _STR + r")\s*,\s*" + _STR, wide)
+            if dm:
+                desc = next(g for g in dm.groups()[3:] if g is not None)
+            else:
+                dd = re.search(r"description\s*:\s*" + _STR, wide)
+                if dd:
+                    desc = _lit(dd)
         if desc is None:
             continue
         props = _zod_props(win)

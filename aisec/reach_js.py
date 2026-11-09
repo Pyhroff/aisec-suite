@@ -8,6 +8,7 @@ found, the verdict is "unknown": we never claim "no sink" about code we have not
 from __future__ import annotations
 
 import re
+from functools import lru_cache
 
 from aisec import reach_bridge
 from aisec.reach import Reach
@@ -85,7 +86,10 @@ _FN_DEFS = [
 ]
 
 
+@lru_cache(maxsize=16)
 def functions(src: str) -> dict[str, tuple[list[str], str]]:
+    """Function index of a source text. Cached: every tool of a module passes the same source, and rescanning it per tool
+    made a file with N tools cost N times its size. Callers only read the result."""
     out: dict[str, tuple[list[str], str]] = {}
     for rx in _FN_DEFS:
         for m in rx.finditer(src):

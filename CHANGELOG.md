@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- **Guard v2** (`aisec/guard_v2.py`, protocol `docs/GUARD_V2_PROTOCOL.md`, results `docs/STUDY.md` section 3g): tokenised tool names, effect classes for destination-free actions, shape-based destination detection, remembered approvals. InjecAgent: 93.2% of 1,054 attacks stopped vs 54.8-58.1% for v1, 0 regressions. **Negative result:** on AgentDojo it holds 39/97 benign tasks vs 22/97 for v1, partly because date strings match the phone-number pattern; fix deferred to a v3 on a new benchmark. Not yet evaluated against a live agent.
+- **Hardening against hostile repositories** (`docs/HARDENING.md`, `tools/hostile_inputs.py`): removed quadratic and catastrophic regex patterns and per-tool re-parsing of shared modules in the poison detector, reachability analysis and tool extractor; tools with padded descriptions are no longer dropped.
 - **`aisec guard-mcp`** (`aisec/mcp_guard.py`): an MCP stdio proxy that applies the runtime guard to every `tools/call`, inferring sinks and destructive tools from the server's `tools/list`; held calls return an `isError` tool result with the reason. Demo with the official MCP client in `examples/guarded-mcp`.
 
 ## 0.6.0

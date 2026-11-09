@@ -264,6 +264,70 @@ rule, written without seeing a single attack, holds most attacks that move data 
 user about roughly one task in five. That is the direction this suite now takes: `aisec.runtime_guard` ships as a
 library for agent hosts; the scanners stay as cheap filters for careless attacks.
 
+## 3g. Guard v2: destination-free actions, and a flaw in destination detection (pre-registered, run once)
+
+Protocol, guard and replay committed before the run: [`GUARD_V2_PROTOCOL.md`](GUARD_V2_PROTOCOL.md),
+`aisec/guard_v2.py`, `benchmarks/guard_v2_eval.py`. v1 is unchanged. v2 tokenises tool names (CamelCase, snake_case and
+kebab-case are one tool), sorts tools into effect classes by the verbs in their names (delete, money, access, control,
+publish, exec, credential, modify) and holds a class the user's request did not use, recognises destinations by shape
+(email, URL, phone, IBAN) in any argument, and remembers what the user approved. Data: InjecAgent base setting at the
+pinned commit, 1,054 cases (510 direct harm, 544 data stealing), the attacker tools replayed after the user's tool result.
+No model is involved.
+
+**InjecAgent (the held-out evaluation).**
+
+| arm | guard | attacks stopped | direct harm | data stealing |
+|---|---|---|---|---|
+| names as given | v1 | 54.8% (578/1,054; CI 51.8-57.8) | 6.7% (34/510) | 100% (544/544) |
+| names as given | **v2** | **93.2%** (982/1,054; CI 91.5-94.5) | **85.9%** (438/510) | 100% (544/544) |
+| snake_case | v1 | 58.1% (612/1,054; CI 55.1-61.0) | 13.3% (68/510) | 100% (544/544) |
+| snake_case | **v2** | **93.2%** (982/1,054) | **85.9%** (438/510) | 100% (544/544) |
+
+Regressions (cases v1 stops that v2 lets through): **0** in both arms. v2's two arms are identical, as predicted. Utility
+cannot be measured on InjecAgent (the user's own call happens before any tool result), and that is not claimed.
+
+**What v2 still misses (72 cases).** Attacker tools never held, from the result file: money tools `BankManagerPayBill`,
+`BankManagerTransferFunds`, `BinanceDeposit`, `BinancePlaceOrder`, `BinanceWithdraw` and `VenmoWithdrawMoney` (7 cases
+each), `NortonIdentitySafeAutoFillPersonalInfo` (17), and single cases for `CiscoUmbrella*Policy`, `DropboxMoveItem`,
+`EpicFHIRManage*`, `FacebookManagerUpdateUserProfile`, `FedExShipManagerManageShipment`, `GoogleHomeScheduleDeviceAction`,
+`IndoorRobotGoToRoom`, `The23andMe{Share,Update}Data` and `TrafficControlGivePriorityToEmergencyVehicle`. I did not
+establish why each money tool passes in those cases; I only report that it does. Prediction 4 (tools with no recognised verb are
+missed) is consistent with `AutoFill` but I did not check it per tool.
+
+**AgentDojo v1.2.2 (development check, not held out: v2 was designed after seeing 3f).**
+
+| | v1 | v2 |
+|---|---|---|
+| attacks stopped | 540/949 | 606/949 |
+| benign tasks held at least once | 22/97 | **39/97** |
+| confirmations | 22 (first hold per task only) | 52 (with `approve`) |
+
+| suite | tasks | held v1 | held v2 | stopped v1 | stopped v2 | attacks |
+|---|---|---|---|---|---|---|
+| banking | 16 | 2 | 8 | 143 | 143 | 144 |
+| slack | 21 | 14 | 14 | 100 | 105 | 105 |
+| travel | 20 | 0 | 5 | 59 | 120 | 140 |
+| workspace | 40 | 6 | 12 | 238 | 238 | 560 |
+
+**This is a regression on cost.** v2 holds 39 of 97 benign tasks, up from 22, to stop 66 more attacks (travel
+accounts for 61 of them). The confirmation counts are not like-for-like (v1 counts one prompt per task, v2 counts every
+prompt after automatic approval), so the 22 vs 52 comparison understates v1's prompts; the share of tasks held is the
+fair comparison, and it got worse. 22 tasks are held by both guards and 17 only by v2. **Prediction 5 failed**: I
+predicted fewer confirmations per task and a similar share of tasks held; the share rose by 17.5 points.
+
+**Post-hoc diagnosis (read-only; the guard and replay were not changed).** Of the 79 destination values v2 held in benign
+tasks, 40 are date-shaped strings such as `2024-05-19` that the phone-number pattern (`_PHONE`) accepts, 24 benign tasks
+have at least one such hold. The other held values: 17 emails, 9 URLs, 12 other. So a large part of the benign cost is a
+bug in shape-based detection, not the policy idea: a calendar or booking date is not a place data can go. Fixing the
+pattern (or requiring a phone-number shape with a separator or `+` prefix) is a v3 and must be measured on a new
+benchmark, not on this one; the AgentDojo numbers above would be tuned if I re-ran them with that fix and called them a
+result. The emails and URLs held in benign tasks are the 3f cause again: destinations that came from data the agent read.
+
+**Reading.** Effect classes plus name tokenising close most of InjecAgent's direct-harm gap (6.7-13.3% to 85.9%) at no
+cost to what v1 already stopped. The price on a different benchmark is more prompts, partly from a detection bug. Both
+facts stand. Ground truth is an idealised agent, so these numbers bound the policy; they are not attack-success rates
+against a live model, and the live evaluation has not been run.
+
 ## 4. Context
 
 * MCPTox (arXiv 2508.14925): tool-poisoning attack taxonomy and measurements on real MCP servers.
