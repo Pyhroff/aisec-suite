@@ -10,7 +10,11 @@ The proxy starts the server, relays MCP's newline-delimited JSON-RPC in both dir
   or the trusted list, or a destructive tool (delete, remove, revoke, ...) the request did not ask for, is not forwarded.
   The client gets a normal tool result with ``isError: true`` explaining why, so the agent can ask the user.
 
-Which tools are sinks and which arguments are destinations is inferred from the server's own ``tools/list`` by name
+``--guard v3`` swaps the engine for ``aisec.guard_v3`` (effect classes read from tool names, destinations recognised by
+shape in any argument; docs/STUDY.md sections 3g-3h). It needs no policy: only ``trusted`` from a policy file is used,
+and a file with ``sinks`` or ``actions`` is refused rather than silently ignored. v1 stays the default.
+
+With v1, which tools are sinks and which arguments are destinations is inferred from the server's own ``tools/list`` by name
 (``infer_policy``); a JSON policy file can add or override entries. The user's request comes from ``--request`` or from
 ``--request-file``, which is re-read on every call so a host can update it each turn. Every decision can be logged as
 JSON lines (``--log``). Nothing is sent anywhere else.
@@ -27,7 +31,10 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import IO, Any
 
+from aisec.guard_v3 import GuardV3
 from aisec.runtime_guard import GuardPolicy, RuntimeGuard
+
+ENGINES = ("v1", "v3")
 
 DEST_PARAM = re.compile(
     r"^(?:to|cc|bcc|recipients?|recipient_\w+|emails?|email_address|user_email|address|url|uri|link|endpoint|"
@@ -73,12 +80,22 @@ class GuardSession:
     overrides: dict[str, Any] = field(default_factory=dict)
     log: Callable[[dict[str, Any]], None] = lambda _e: None
     policy: GuardPolicy = field(default_factory=GuardPolicy)
+    engine: str = "v1"
     tainted: bool = False
     _pending: dict[Any, str] = field(default_factory=dict)
     _lock: threading.Lock = field(default_factory=threading.Lock)
 
     def __post_init__(self) -> None:
+        if self.engine not in ENGINES:
+            raise ValueError(f"unknown guard engine {self.engine!r}; use one of {ENGINES}")
+        if self.engine == "v3" and (self.overrides.get("sinks") or self.overrides.get("actions")):
+            raise ValueError("a policy file with 'sinks' or 'actions' only applies to --guard v1; v3 reads only 'trusted'")
         self.policy = merge(self.policy, self.overrides)
+
+    def _guard(self) -> RuntimeGuard | GuardV3:
+        if self.engine == "v3":
+            return GuardV3(self.request(), [*self.trusted, *self.overrides.get("trusted", [])])
+        return RuntimeGuard(self.policy, self.request(), self.trusted)
 
     def from_client(self, msg: dict[str, Any]) -> dict[str, Any] | None:
         """Return a reply to send straight back to the client instead of forwarding, or None to forward."""
@@ -92,7 +109,7 @@ class GuardSession:
             params = msg.get("params") or {}
             name = str(params.get("name", ""))
             args = params.get("arguments") or {}
-            guard = RuntimeGuard(self.policy, self.request(), self.trusted)
+            guard = self._guard()
             guard.tainted = self.tainted
             decision = guard.check(name, args if isinstance(args, dict) else {})
             self.log({"event": "call", "tool": name, "allowed": decision.allow, "reason": decision.reason})
@@ -110,6 +127,8 @@ class GuardSession:
             kind = self._pending.pop(msg["id"], None)
             if kind == "tools/call":
                 self.tainted = True   # whatever the tool returned is untrusted from now on
+            elif kind == "tools/list" and self.engine == "v3":
+                self.log({"event": "policy", "engine": "v3"})
             elif kind == "tools/list":
                 tools = (msg.get("result") or {}).get("tools") or []
                 self.policy = merge(infer_policy(tools), self.overrides)
@@ -172,7 +191,7 @@ def run(command: list[str], session: GuardSession) -> int:
 
 
 def build_session(request: str | None, request_file: str | None, trusted: list[str], policy_file: str | None,
-                  log_file: str | None) -> GuardSession:
+                  log_file: str | None, engine: str = "v1") -> GuardSession:
     if request_file:
         path = Path(request_file)
 
@@ -197,4 +216,4 @@ def build_session(request: str | None, request_file: str | None, trusted: list[s
         def log(event: dict[str, Any]) -> None:
             if event.get("event") == "call" and not event.get("allowed"):
                 print(f"aisec guard: held {event['tool']}: {event['reason']}", file=sys.stderr)
-    return GuardSession(request=get_request, trusted=trusted, overrides=overrides, log=log)
+    return GuardSession(request=get_request, trusted=trusted, overrides=overrides, log=log, engine=engine)

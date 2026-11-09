@@ -21,6 +21,7 @@ from aisec.adapters import (
     scan_weightspecter_checkpoints,
 )
 from aisec.benchmark import load_metrics, run_range
+from aisec.guard_v3 import GuardV3
 from aisec.lifecycle import classify, load_baseline
 from aisec.model import SEVERITY_ORDER, at_least
 from aisec.modules import available_modules
@@ -31,7 +32,7 @@ from aisec.native_adapters import (
     scan_worm_tree,
 )
 from aisec.policy import PROFILES, apply_policy, load_policy, profile_policy, validate_policy
-from aisec.runtime_guard import AGENTDOJO_POLICY, Decision, GuardPolicy, RuntimeGuard
+from aisec.runtime_guard import AGENTDOJO_POLICY, GuardPolicy, RuntimeGuard
 from aisec.sarif import to_sarif
 from aisec.summary import to_markdown
 
@@ -350,8 +351,11 @@ def guard_check(
     policy_file: Optional[pathlib.Path] = typer.Option(None, "--policy", exists=True, dir_okay=False, help="Custom GuardPolicy JSON file."),
     trusted: list[str] = typer.Option([], "--trusted", help="Additional trusted destinations."),
     json_out: bool = typer.Option(False, "--json", help="Output machine-readable JSON."),
+    guard_engine: str = typer.Option("v1", "--guard", help="Guard engine: v1 (default, policy inferred from tool names) or v3 (effect classes and shape-based destinations; STUDY 3g-3h)."),
 ) -> None:
     """Evaluate runtime data provenance for an agent tool call."""
+    if guard_engine not in ("v1", "v3"):
+        raise typer.BadParameter("--guard must be v1 or v3")
     try:
         parsed_args = json.loads(args_json)
         if not isinstance(parsed_args, dict):
@@ -362,6 +366,8 @@ def guard_check(
     if policy_file:
         try:
             data = json.loads(policy_file.read_text(encoding="utf-8"))
+            if guard_engine == "v3" and (data.get("sinks") or data.get("actions")):
+                raise ValueError("'sinks' and 'actions' only apply to --guard v1; v3 reads only 'trusted'")
             policy = GuardPolicy(
                 sinks={k: tuple(v) for k, v in data.get("sinks", {}).items()},
                 actions={k: tuple(v) for k, v in data.get("actions", {}).items()},
@@ -372,11 +378,15 @@ def guard_check(
     else:
         policy = AGENTDOJO_POLICY
 
-    guard = RuntimeGuard(policy=policy, user_request=request, trusted=trusted)
+    guard: RuntimeGuard | GuardV3
+    if guard_engine == "v3":
+        guard = GuardV3(request, [*trusted, *sorted(policy.trusted)])
+    else:
+        guard = RuntimeGuard(policy=policy, user_request=request, trusted=trusted)
     if tainted:
         guard.observe_result("pre-existing-untrusted-read")
 
-    decision: Decision = guard.check(tool, parsed_args)
+    decision = guard.check(tool, parsed_args)
 
     if json_out:
         typer.echo(json.dumps({"allow": decision.allow, "reason": decision.reason, "tool": tool, "args": parsed_args}))
@@ -399,6 +409,7 @@ def guard_mcp(
     trusted: list[str] = typer.Option([], "--trusted", help="Destinations always allowed (repeatable)."),
     policy_file: Optional[pathlib.Path] = typer.Option(None, "--policy", exists=True, dir_okay=False, help="JSON with extra sinks/actions/trusted."),
     log_file: Optional[pathlib.Path] = typer.Option(None, "--log", help="Append every guard decision here as JSON lines."),
+    guard_engine: str = typer.Option("v1", "--guard", help="Guard engine: v1 (default, policy inferred from tool names) or v3 (effect classes and shape-based destinations; STUDY 3g-3h)."),
 ) -> None:
     """Run an MCP server behind the runtime guard: aisec guard-mcp -r "..." -- <server command>."""
     from aisec import mcp_guard
@@ -408,8 +419,11 @@ def guard_mcp(
         raise typer.BadParameter("give the MCP server command after --, e.g. aisec guard-mcp -r '...' -- python server.py")
     if request is None and request_file is None:
         raise typer.BadParameter("give the user's request with --request or --request-file")
-    session = mcp_guard.build_session(request, str(request_file) if request_file else None, trusted,
-                                      str(policy_file) if policy_file else None, str(log_file) if log_file else None)
+    try:
+        session = mcp_guard.build_session(request, str(request_file) if request_file else None, trusted,
+                                          str(policy_file) if policy_file else None, str(log_file) if log_file else None, guard_engine)
+    except ValueError as e:
+        raise typer.BadParameter(str(e)) from e
     raise typer.Exit(code=mcp_guard.run(command, session))
 
 
