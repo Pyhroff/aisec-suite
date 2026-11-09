@@ -34,6 +34,10 @@
     {
       "scanner": "ragsentry",
       "file": "docs/STUDY.md"
+    },
+    {
+      "scanner": "ragsentry",
+      "file": "tools/hostile_inputs.py"
     }
   ]
 }
