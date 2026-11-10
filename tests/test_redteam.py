@@ -21,8 +21,8 @@ PROBE = Payload("x", "test/probe", "extract")
 
 
 def flat(output):
-    """CLI output with the error box's borders and line wrapping removed."""
-    return re.sub(r"[\s\u2502]+", " ", output)
+    """CLI output with the error box's colour codes, borders and line wrapping removed."""
+    return re.sub(r"[\s\u2502]+", " ", re.sub(r"\x1b\[[0-9;]*m", "", output))
 
 
 def run_mock(defense, **kw):
