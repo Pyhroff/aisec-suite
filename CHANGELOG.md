@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- **Red-team evaluation harness** (`benchmarks/redteam/`, protocol `docs/REDTEAM_EVAL_PROTOCOL.md`): a fixed suite of six target system prompts with planted canaries and the runner that scores every strategy (and the model-driven attacker) against a chat model, reporting breach, extraction and bypass rates with Wilson intervals. Not in the wheel; run once per model with `python -m benchmarks.redteam.run`. No model has been evaluated yet.
 
 ## 0.8.0
 - **`aisec redteam --attacker`** (`aisec/redteam/attacker.py`): a model-driven attacker that reads each reply and the judge's score and writes the next message itself, instead of the three scripted strategies. `--attacker http|claude` with `--attacker-url` / `--attacker-model` / `--attacker-api-key-env`; with no `-s` it replaces the scripted strategies, with `-s` it runs alongside them. The attacker is told only that a secret exists, never its value, so a run still measures extraction; a capable attacker model that declines is reported as a target error, not a silent pass. The engine now accepts built `Strategy` instances as well as names. Still not evaluated against a real model.

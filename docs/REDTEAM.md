@@ -181,4 +181,6 @@ Exit codes: `0` finished (or no breach), `1` breach with `--fail-on-breach`, `2`
 * The three scripted strategies use fixed wording. A target that resists them has resisted these attacks, not attacks
   in general. `--attacker` lifts this by letting a model write the messages, but then the attack is only as good as
   that model.
-* Not evaluated against any real model or public jailbreak benchmark yet; there is no measured success rate to quote.
+* Not evaluated against any real model or public jailbreak benchmark yet; there is no measured success rate to
+  quote. A fixed scenario suite and a pre-registered protocol for producing one are in place
+  (`benchmarks/redteam/`, `docs/REDTEAM_EVAL_PROTOCOL.md`): `python -m benchmarks.redteam.run --url <endpoint> --model <id>` runs it against a local model.
