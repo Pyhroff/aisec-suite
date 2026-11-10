@@ -162,6 +162,12 @@ report = to_report(engine.run(target, HeuristicJudge(objective), objective))
 
 ## Report
 
+`--html report.html` writes the same run as one self-contained page for reading: each attack with its score per turn,
+and every turn's payload, reply, verdict and evidence, with the breaching turns opened. A score says an attack
+breached; the transcript is how you check that verdict. The page has no scripts and loads nothing from the network,
+and everything the attacker and the target wrote is escaped. It contains whatever the target leaked, so treat it like
+the JSON report.
+
 `--json` writes one object (`schema_version` 1.0):
 
 * `summary`: `verdict`, `attacks_run`, `attacks_breached`, `max_score`, `system_prompt_extracted`, `system_prompt_bypassed`.

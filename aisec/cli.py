@@ -485,6 +485,7 @@ def redteam(
     attacker_url: Optional[str] = typer.Option(None, "--attacker-url", help="Chat-completions endpoint for --attacker http."),
     attacker_api_key_env: Optional[str] = typer.Option(None, "--attacker-api-key-env", help="Environment variable holding the bearer token for --attacker-url."),
     json_out: Optional[pathlib.Path] = typer.Option(None, "--json", help="Write the full JSON report here."),
+    html_out: Optional[pathlib.Path] = typer.Option(None, "--html", help="Write the transcripts as one self-contained HTML page here, for reading what was sent and what came back."),
     fail_on_breach: bool = typer.Option(False, "--fail-on-breach", help="Exit 1 when any attack reaches --breach-score."),
 ) -> None:
     """Run adaptive multi-turn jailbreak attacks against an LLM target you are authorised to test."""
@@ -558,6 +559,10 @@ def redteam(
     if json_out:
         json_out.parent.mkdir(parents=True, exist_ok=True)
         json_out.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    if html_out:
+        from aisec.redteam.html_report import to_html
+        html_out.parent.mkdir(parents=True, exist_ok=True)
+        html_out.write_text(to_html(report), encoding="utf-8")
     typer.echo(f"target: {result.target} | judge: {result.judge} | breach score: {breach_score}")
     for a in report["attacks"]:
         path = " -> ".join(f"{step['technique'].split('/', 1)[1]}={step['score']}" for step in a["attack_path"])
@@ -572,6 +577,8 @@ def redteam(
         typer.echo("note: the mock target is scripted; this run checks the engine, not any real model.")
     if json_out:
         typer.echo(f"report: {json_out}")
+    if html_out:
+        typer.echo(f"transcripts: {html_out}")
     if fail_on_breach and result.breached:
         raise typer.Exit(code=1)
 
