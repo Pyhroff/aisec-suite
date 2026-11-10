@@ -42,11 +42,15 @@ policy_app = typer.Typer(name="policy", help="Inspect and validate policy-as-cod
 app.add_typer(policy_app)
 
 
-@app.callback()
-def _main(version: bool = typer.Option(False, "--version", is_eager=True)) -> None:
-    if version:
+def _print_version(value: bool) -> None:
+    if value:
         typer.echo(__version__)
         raise typer.Exit()
+
+
+@app.callback()
+def _main(version: bool = typer.Option(False, "--version", callback=_print_version, is_eager=True, help="Print the version and exit.")) -> None:
+    pass
 
 
 @app.command("modules")
