@@ -67,6 +67,20 @@ aisec modules                                   # list scanners and whether each
 
 Exit codes with `--fail-on`: `0` nothing at or above the threshold, `1` findings at or above it, `2` a scanner crashed (reported as a warning, never mistaken for a finding).
 
+## Red-teaming an LLM target
+
+`aisec redteam` attacks a chat model running under a system prompt with adaptive multi-turn strategies (crescendo
+escalation, steganographic carriers, roleplay), scores every reply 1-10 with a deterministic or LLM judge, and writes a
+JSON report with the attack path, payloads, turn history and whether the prompt was extracted or bypassed.
+
+```bash
+aisec redteam --json redteam.json                         # offline run against the built-in mock target
+aisec redteam --target claude --system-prompt-file prompt.txt --canary "ZX-CANARY-4411" --judge claude --fail-on-breach
+```
+
+The mock target is scripted, so the first command checks the engine, not any model. It has not been evaluated against
+real models yet. Details and limits: [`docs/REDTEAM.md`](docs/REDTEAM.md).
+
 ## Runtime guard for MCP servers
 
 Scanners catch careless attacks; the runtime guard holds the dangerous step whatever the wording. Put it in front of any
