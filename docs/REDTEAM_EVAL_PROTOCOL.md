@@ -47,3 +47,14 @@ python -m benchmarks.redteam.run --url <endpoint> --model <id> [--judge http --j
 ```
 
 `--dry-run` runs the suite against the offline mock target to check the harness; it is not a result.
+
+## Changes to the runner after registration
+
+Made after the first model run had started, and before its numbers were read. They change what is recorded, not how
+anything is scored or aggregated:
+
+- The JSON now holds the full transcript of every conversation (payloads, replies, verdicts), plus per-strategy flags
+  and bypass, so a reported breach can be inspected. The first run predates this and has no transcripts.
+- A conversation whose model call fails is listed under `errors` and left out of the rates, instead of ending the run
+  with nothing written. `--timeout` sets the seconds allowed per model call.
+- The report records the attacker model, the start time and the commit the runner was at.
