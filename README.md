@@ -75,7 +75,9 @@ JSON report with the attack path, payloads, turn history and whether the prompt 
 
 ```bash
 aisec redteam --json redteam.json                         # offline run against the built-in mock target
-aisec redteam --target claude --system-prompt-file prompt.txt --canary "ZX-CANARY-4411" --judge claude --fail-on-breach
+aisec redteam --target http --url http://localhost:11434/v1/chat/completions --model llama3.2 \
+  --system-prompt-file prompt.txt --canary "ZX-CANARY-4411" --fail-on-breach   # a local or hosted model, or your own app
+aisec redteam --target claude --system-prompt-file prompt.txt --canary "ZX-CANARY-4411" --judge claude
 ```
 
 The mock target is scripted, so the first command checks the engine, not any model. It has not been evaluated against
@@ -133,7 +135,7 @@ For maximum reproducibility in production, pin both the `aisec-suite` action ref
 
 ## Package and release status
 
-Latest release: **0.6.0** (PyPI: 0.2.0, 0.3.0, 0.4.0, 0.5.0, 0.6.0; earlier 2.x labels in the repository history were never published). Pin versions in CI rather than tracking the default branch. Policy as code, baselines, finding lifecycle, reporting formats and the release pipeline are documented in [`docs/REFERENCE.md`](docs/REFERENCE.md).
+Latest release: **0.7.0** (PyPI: 0.2.0, 0.3.0, 0.4.0, 0.5.0, 0.6.0, 0.7.0; earlier 2.x labels in the repository history were never published). Pin versions in CI rather than tracking the default branch. Policy as code, baselines, finding lifecycle, reporting formats and the release pipeline are documented in [`docs/REFERENCE.md`](docs/REFERENCE.md).
 
 ## Architecture
 
