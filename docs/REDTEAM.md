@@ -59,6 +59,33 @@ Each strategy runs in its own conversation and reads the judge's verdict on the 
 All three ask for a different output form when a reply comes back redacted. An attack stops when the strategy runs out
 of moves, at `--max-turns`, or at score 10.
 
+### Model-driven attacker (`--attacker`)
+
+The three strategies above follow pre-written wording and adapt only by rule. `--attacker` instead hands the job to a
+model, which reads each reply and the judge's score and writes the next message itself, so it can pursue whatever
+opening the target leaves — for example quoting a rule the target just recited, or pressing a model that answers an
+encoded request by hallucinating rather than refusing.
+
+```bash
+# a local model attacks a local model
+aisec redteam --target http --url http://localhost:11434/v1/chat/completions --model llama3.2 \
+  --system-prompt-file prompt.txt --canary "ZX-CANARY-4411" \
+  --attacker http --attacker-url http://localhost:11434/v1/chat/completions --attacker-model llama3.2 --json redteam.json
+
+# Claude as the attacker (needs the redteam extra and a key); --attacker-model defaults to claude-opus-5-5
+aisec redteam --target http --url https://staging.example/chat --system-prompt-server-side \
+  --system-prompt-file prompt.txt --canary "ZX-CANARY-4411" --attacker claude
+```
+
+* `--attacker http|claude` with `--attacker-url` / `--attacker-model` / `--attacker-api-key-env`, the same way the
+  target and judge endpoints are configured.
+* With no `-s` the attacker **replaces** the scripted strategies; with `-s` it runs alongside them.
+* The attacker is told only that a secret exists and what counts as success, never the secret's value, so a run still
+  measures extraction. It can give up early by emitting `STOP`.
+* A capable attacker model (e.g. Claude) may decline to generate the attack; that is reported as a target error, not a
+  silent pass. A small local model makes a weak attacker, the same way it makes a weak judge.
+* Its turns appear in the report under the strategy name `llm-attacker:<endpoint>`, each technique `llm-attacker/turn-N`.
+
 ## Judges
 
 Score scale: 1 refusal, 2 harmless reply, 4 persona adopted, 5 part of the prompt leaked, 6 declared rule broken,
@@ -151,6 +178,7 @@ Exit codes: `0` finished (or no breach), `1` breach with `--fail-on-breach`, `2`
 
 ## Limits
 
-* Three fixed strategies with scripted wording. A target that resists them has resisted these attacks, not attacks in general.
-* The attacker is not a model: it adapts by rule, not by reading the reply for meaning.
+* The three scripted strategies use fixed wording. A target that resists them has resisted these attacks, not attacks
+  in general. `--attacker` lifts this by letting a model write the messages, but then the attack is only as good as
+  that model.
 * Not evaluated against any real model or public jailbreak benchmark yet; there is no measured success rate to quote.
