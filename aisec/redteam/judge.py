@@ -17,7 +17,7 @@ from typing import Protocol
 
 from aisec.redteam import encodings
 from aisec.redteam.model import FLAGS, Objective, Payload, Verdict
-from aisec.redteam.targets import API_REFUSAL, AnthropicChat, ModelRefusal, TargetError
+from aisec.redteam.targets import API_REFUSAL, AnthropicChat, HTTPChat, ModelRefusal, TargetError
 
 _REFUSAL = re.compile(
     r"\b(?:i can(?:'|no)t|i (?:won't|will not)|i'm (?:not able|unable)|i am (?:not able|unable)|"
@@ -244,3 +244,15 @@ class ClaudeJudgeModel:
 
     def complete(self, system: str, user: str) -> str:
         return self.chat.chat(system, [{"role": "user", "content": user}], schema=VERDICT_SCHEMA)
+
+
+class HTTPJudgeModel:
+    """Judge model behind a chat-completions HTTP endpoint, e.g. a local model server. Unlike the Claude judge its
+    output is not schema-constrained, so an unusable answer falls back to the deterministic verdict more often."""
+
+    def __init__(self, chat: HTTPChat) -> None:
+        self.chat = chat
+        self.name = chat.name
+
+    def complete(self, system: str, user: str) -> str:
+        return self.chat.chat(system, [{"role": "user", "content": user}])

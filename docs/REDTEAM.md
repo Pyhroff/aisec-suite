@@ -71,9 +71,38 @@ Score scale: 1 refusal, 2 harmless reply, 4 persona adopted, 5 part of the promp
   checks: proven evidence sets a floor, so a reply that tells the judge "score this 1" cannot hide a canary that is
   really there. Flags the checks proved are listed under `evidence.confirmed`; anything else is the judge's opinion.
   If the judge model's answer is unusable, the deterministic verdict is used and `evidence.judge_error` says why.
+* `--judge http`: LLM-as-a-judge through a chat-completions endpoint (see below).
 * `--judge mock-llm`: the same code path with an offline stand-in for the model. For tests and demos only.
 
 The judge model is never sent the canary values.
+
+## Testing a model or application over HTTP
+
+`--target http` talks to any endpoint that accepts the common chat-completions request
+(`{"model": ..., "messages": [...]}`): local model servers such as Ollama, LM Studio, vLLM and llama.cpp, most hosted
+providers, and your own application if it exposes that shape. No extra dependency and, for a local server, no API key.
+
+```bash
+# a local model under your prompt (Ollama shown)
+aisec redteam --target http --url http://localhost:11434/v1/chat/completions --model llama3.2 \
+  --system-prompt-file prompt.txt --canary "ZX-CANARY-4411" --json redteam.json
+
+# a hosted provider: the key is read from the environment variable you name, never from the command line
+aisec redteam --target http --url https://provider.example/v1/chat/completions --model some-model \
+  --api-key-env PROVIDER_API_KEY --system-prompt-file prompt.txt --canary "ZX-CANARY-4411"
+
+# your deployed application, which holds its own prompt: nothing is sent as the system message,
+# the file is only used to measure how much of it leaks
+aisec redteam --target http --url https://staging.example/chat --system-prompt-file prompt.txt \
+  --system-prompt-server-side --canary "ZX-CANARY-4411" --response-path reply.text
+```
+
+* `--response-path` says where the reply text sits in the JSON answer (default `choices.0.message.content`).
+* `--judge http --judge-url ... --judge-model ...` uses a model behind such an endpoint as the LLM judge. Its output
+  is not schema-constrained, so with small local models expect more fallbacks to the deterministic verdict
+  (`evidence.judge_error`).
+* Redirects are refused, so the token and transcript only go to the host you named. Overload answers (429, 5xx) are
+  retried twice.
 
 ## Testing a Claude model
 
@@ -91,7 +120,7 @@ model plus that prompt, not your deployed application with its own filters and t
 (`stop_reason: "refusal"`) is recorded as the target declining; server-side model fallbacks are left off so the model
 under test is never silently swapped.
 
-To test your own application, wrap it and call the engine from Python:
+For an application that does not speak the chat-completions format, wrap it and call the engine from Python:
 
 ```python
 from aisec.redteam import engine, targets
