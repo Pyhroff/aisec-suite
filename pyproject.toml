@@ -18,6 +18,8 @@ dependencies = ["typer>=0.12"]
 # Published on PyPI and installable today.
 core = ["pyhroff-mcpaudit>=0.7", "memsentry>=1.2", "pyhroff-ragsentry>=1.1"]
 all = ["pyhroff-mcpaudit>=0.7", "memsentry>=1.2", "pyhroff-ragsentry>=1.1"]
+# Only needed for `aisec redteam --target claude` / `--judge claude`; the mock target and heuristic judge need nothing.
+redteam = ["anthropic>=1.0"]
 # Research-preview and private scanners. These are NOT on PyPI; install them from source
 # when you have access. Requesting this extra from PyPI will fail.
 private = ["agent-install-guardrail>=0.8", "trainsentry>=1.1", "loopcheck>=0.8", "wormsentry>=1.0", "pyhroff-specprove-sec>=0.4", "pyhroff-weightspecter>=2.0", "pyhroff-tokenspecter>=1.0", "pyhroff-circuitshield>=1.0", "pyhroff-attestinfer>=1.0", "adversagen>=0.1"]
