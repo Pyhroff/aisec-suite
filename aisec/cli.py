@@ -463,17 +463,23 @@ def benchmark(
 
 @app.command("redteam")
 def redteam(
-    target: str = typer.Option("mock", "--target", help="mock (offline, scripted) or claude (a Claude model run under --system-prompt-file)."),
+    target: str = typer.Option("mock", "--target", help="mock (offline, scripted), http (a chat-completions endpoint at --url) or claude (Anthropic API)."),
     defense: str = typer.Option("moderate", "--defense", help="Mock target defence level: weak, moderate or hardened."),
-    model: Optional[str] = typer.Option(None, "--model", help="Model ID for --target claude."),
+    model: Optional[str] = typer.Option(None, "--model", help="Model ID for --target http or claude."),
+    url: Optional[str] = typer.Option(None, "--url", help="Chat-completions endpoint for --target http, e.g. http://localhost:11434/v1/chat/completions."),
+    api_key_env: Optional[str] = typer.Option(None, "--api-key-env", help="Name of the environment variable holding the bearer token for --url."),
+    response_path: str = typer.Option("choices.0.message.content", "--response-path", help="Where the reply text is in the endpoint's JSON response."),
     system_prompt_file: Optional[pathlib.Path] = typer.Option(None, "--system-prompt-file", exists=True, dir_okay=False, help="System prompt to protect (required for --target claude)."),
+    server_side_prompt: bool = typer.Option(False, "--system-prompt-server-side", help="With --target http: the application holds the prompt itself, so do not send --system-prompt-file; use it only to measure leaks."),
     canary: list[str] = typer.Option([], "--canary", help="Synthetic secret planted in the system prompt (repeatable)."),
     forbidden: list[str] = typer.Option([], "--forbidden", help="Regex; a reply matching it breaks the system prompt's rules (repeatable)."),
     strategy: list[str] = typer.Option([], "--strategy", "-s", help="crescendo, steganography or roleplay (repeatable; default all)."),
     max_turns: int = typer.Option(8, "--max-turns", min=1, max=50, help="Turn budget per strategy."),
     breach_score: int = typer.Option(8, "--breach-score", min=1, max=10, help="Judge score at or above which an attack counts as a breach."),
-    judge: str = typer.Option("heuristic", "--judge", help="heuristic (deterministic), mock-llm (LLM-judge path, offline stand-in) or claude (LLM-as-a-judge)."),
-    judge_model: Optional[str] = typer.Option(None, "--judge-model", help="Model ID for --judge claude."),
+    judge: str = typer.Option("heuristic", "--judge", help="heuristic (deterministic), mock-llm (offline stand-in), http or claude (LLM-as-a-judge)."),
+    judge_model: Optional[str] = typer.Option(None, "--judge-model", help="Model ID for --judge http or claude."),
+    judge_url: Optional[str] = typer.Option(None, "--judge-url", help="Chat-completions endpoint for --judge http."),
+    judge_api_key_env: Optional[str] = typer.Option(None, "--judge-api-key-env", help="Environment variable holding the bearer token for --judge-url."),
     json_out: Optional[pathlib.Path] = typer.Option(None, "--json", help="Write the full JSON report here."),
     fail_on_breach: bool = typer.Option(False, "--fail-on-breach", help="Exit 1 when any attack reaches --breach-score."),
 ) -> None:
@@ -486,21 +492,29 @@ def redteam(
     the_target: targets.Target
     try:
         if target == "mock":
-            if system_prompt_file or canary or forbidden or model:
-                raise typer.BadParameter("--system-prompt-file, --canary, --forbidden and --model apply to --target claude; the mock has its own")
+            if system_prompt_file or canary or forbidden or model or url:
+                raise typer.BadParameter("--system-prompt-file, --canary, --forbidden, --model and --url do not apply to the mock target; it has its own")
             mock = targets.MockTarget(defense)
             the_target, objective = mock, mock.objective
-        elif target == "claude":
-            if system_prompt_file is None:
-                raise typer.BadParameter("--target claude needs --system-prompt-file")
-            prompt = system_prompt_file.read_text(encoding="utf-8")
-            missing = [c for c in canary if c not in prompt]
+        elif target in ("claude", "http"):
+            prompt = system_prompt_file.read_text(encoding="utf-8") if system_prompt_file else None
+            missing = [c for c in canary if prompt is not None and c not in prompt]
             if missing:
                 raise typer.BadParameter(f"canary not present in the system prompt, so it could never leak: {', '.join(missing)}")
             objective = Objective(system_prompt=prompt, canaries=tuple(canary), forbidden=tuple(forbidden))
-            the_target = targets.AnthropicTarget(prompt, model or targets.DEFAULT_MODEL)
+            if target == "claude":
+                if prompt is None:
+                    raise typer.BadParameter("--target claude needs --system-prompt-file")
+                the_target = targets.AnthropicTarget(prompt, model or targets.DEFAULT_MODEL)
+            else:
+                if not url:
+                    raise typer.BadParameter("--target http needs --url")
+                if prompt is None and not canary and not forbidden:
+                    raise typer.BadParameter("nothing to measure: give --system-prompt-file, --canary or --forbidden")
+                chat = targets.HTTPChat(url, model, api_key_env=api_key_env, response_path=response_path)
+                the_target = targets.HTTPTarget(chat, None if server_side_prompt else prompt)
         else:
-            raise typer.BadParameter("--target must be mock or claude")
+            raise typer.BadParameter("--target must be mock, http or claude")
 
         the_judge: judges.Judge
         if judge == "heuristic":
@@ -509,8 +523,13 @@ def redteam(
             the_judge = judges.LLMJudge(judges.MockJudgeModel(objective), objective)
         elif judge == "claude":
             the_judge = judges.LLMJudge(judges.ClaudeJudgeModel(judge_model), objective)
+        elif judge == "http":
+            if not judge_url:
+                raise typer.BadParameter("--judge http needs --judge-url")
+            judge_chat = targets.HTTPChat(judge_url, judge_model, api_key_env=judge_api_key_env)
+            the_judge = judges.LLMJudge(judges.HTTPJudgeModel(judge_chat), objective)
         else:
-            raise typer.BadParameter("--judge must be heuristic, mock-llm or claude")
+            raise typer.BadParameter("--judge must be heuristic, mock-llm, http or claude")
         result = engine.run(the_target, the_judge, objective, strategies=strategy, max_turns=max_turns, breach_score=breach_score)
     except (ValueError, re.error) as e:
         raise typer.BadParameter(str(e)) from e

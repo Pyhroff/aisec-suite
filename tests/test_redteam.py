@@ -1,7 +1,9 @@
 """Red-team engine (aisec/redteam): strategies adapt, judges score from evidence, the report says what happened."""
+import http.server
 import json
 import re
 import sys
+import threading
 import types
 
 import pytest
@@ -371,3 +373,183 @@ def test_cli_claude_target_end_to_end_with_faked_sdk(tmp_path, monkeypatch):
                             "--forbidden", "(?i)unrestricted", "--fail-on-breach"])
     assert r.exit_code == 0, r.output
     assert "target: claude:claude-opus-5-5" in r.output and "result: resisted" in r.output
+
+
+# --- HTTP target (real local server, chat-completions format) -------------------------------------------------------------
+
+class ChatServer:
+    """A local chat-completions endpoint. ``reply(body, headers)`` returns ``(status, payload)`` or a ``Location`` URL."""
+
+    def __init__(self, reply):
+        self.requests = []
+        outer = self
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_POST(self):
+                body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                outer.requests.append((body, dict(self.headers)))
+                result = reply(body, self.headers)
+                if isinstance(result, str):
+                    self.send_response(302)
+                    self.send_header("Location", result)
+                    self.send_header("Content-Length", "0")
+                    self.end_headers()
+                    return
+                status, payload = result
+                data = payload if isinstance(payload, bytes) else json.dumps(payload).encode()
+                self.send_response(status)
+                self.send_header("Content-Length", str(len(data)))
+                self.end_headers()
+                self.wfile.write(data)
+
+            def log_message(self, *args):
+                pass
+
+        self.server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        self.url = f"http://127.0.0.1:{self.server.server_address[1]}/v1/chat/completions"
+        threading.Thread(target=self.server.serve_forever, kwargs={"poll_interval": 0.01}, daemon=True).start()
+
+    def close(self):
+        self.server.shutdown()
+        self.server.server_close()
+
+
+@pytest.fixture
+def serve():
+    servers = []
+
+    def start(reply):
+        servers.append(ChatServer(reply))
+        return servers[-1]
+
+    yield start
+    for server in servers:
+        server.close()
+
+
+def completion(text):
+    return 200, {"choices": [{"message": {"role": "assistant", "content": text}}]}
+
+
+def mock_app(defense):
+    """The scripted mock target served over HTTP: it holds its own prompt and ignores any system message."""
+    mock = targets.MockTarget(defense)
+    return lambda body, headers: completion(mock.send([m for m in body["messages"] if m["role"] != "system"]))
+
+
+def http_chat(url, **kw):
+    return targets.HTTPChat(url, sleep=lambda seconds: None, **kw)
+
+
+def test_http_target_sends_model_system_prompt_history_and_bearer_token(serve, monkeypatch):
+    monkeypatch.setenv("MY_KEY", "tok-123")
+    server = serve(lambda body, headers: completion("hello"))
+    target = targets.HTTPTarget(http_chat(server.url, model="llama3", api_key_env="MY_KEY"), "be nice")
+    assert target.send([{"role": "user", "content": "hi"}]) == "hello" and target.name.endswith("/llama3")
+    body, headers = server.requests[0]
+    assert body == {"model": "llama3", "messages": [{"role": "system", "content": "be nice"}, {"role": "user", "content": "hi"}]}
+    assert headers["Authorization"] == "Bearer tok-123"
+
+
+def test_http_target_without_prompt_or_key_sends_neither(serve):
+    server = serve(lambda body, headers: completion("hello"))
+    targets.HTTPTarget(http_chat(server.url)).send([{"role": "user", "content": "hi"}])
+    body, headers = server.requests[0]
+    assert body == {"messages": [{"role": "user", "content": "hi"}]} and "Authorization" not in headers
+
+
+def test_http_target_reads_a_custom_response_path_and_null_content(serve):
+    server = serve(lambda body, headers: (200, {"reply": [{"text": "custom"}], "choices": [{"message": {"content": None}}]}))
+    assert http_chat(server.url, response_path="reply.0.text").chat(None, []) == "custom"
+    assert http_chat(server.url).chat(None, []) == ""
+
+
+@pytest.mark.parametrize("reply, message", [
+    (lambda b, h: (200, {"unexpected": 1}), "has no 'choices.0.message.content'"),
+    (lambda b, h: (200, {"choices": [{"message": {"content": 7}}]}), "is not text"),
+    (lambda b, h: (200, b"<html>"), "did not answer with JSON"),
+    (lambda b, h: (401, {"error": "bad key"}), "HTTP 401"),
+    (lambda b, h: (200, b"x" * (targets.MAX_RESPONSE_BYTES + 10)), "more than"),
+])
+def test_http_target_reports_unusable_answers(serve, reply, message):
+    with pytest.raises(targets.TargetError, match=message):
+        http_chat(serve(reply).url).chat(None, [])
+
+
+def test_http_target_retries_overload_then_succeeds_and_gives_up_after_the_limit(serve):
+    answers = iter([(503, {}), (429, {}), completion("third time")])
+    server = serve(lambda body, headers: next(answers))
+    assert http_chat(server.url).chat(None, []) == "third time" and len(server.requests) == 3
+    always = serve(lambda body, headers: (503, {}))
+    with pytest.raises(targets.TargetError, match="HTTP 503"):
+        http_chat(always.url).chat(None, [])
+    assert len(always.requests) == 3
+
+
+def test_http_target_does_not_follow_redirects_with_the_token(serve, monkeypatch):
+    monkeypatch.setenv("MY_KEY", "tok-123")
+    elsewhere = serve(lambda body, headers: completion("stolen"))
+    server = serve(lambda body, headers: elsewhere.url)
+    with pytest.raises(targets.TargetError, match="HTTP 302"):
+        http_chat(server.url, api_key_env="MY_KEY").chat(None, [])
+    assert elsewhere.requests == []
+
+
+def test_http_target_rejects_bad_configuration(monkeypatch):
+    monkeypatch.delenv("NO_SUCH_KEY", raising=False)
+    for bad in ("file:///etc/passwd", "localhost:11434/v1", "ftp://host/x"):
+        with pytest.raises(ValueError, match="http"):
+            targets.HTTPChat(bad)
+    with pytest.raises(targets.TargetError, match="NO_SUCH_KEY"):
+        targets.HTTPChat("http://localhost:1/x", api_key_env="NO_SUCH_KEY")
+    with pytest.raises(targets.TargetError, match="could not reach"):
+        http_chat("http://127.0.0.1:1/x", retries=0, timeout=2).chat(None, [])
+
+
+def test_engine_reaches_the_same_verdicts_over_http_as_in_process(serve):
+    server = serve(mock_app("moderate"))
+    objective = targets.MOCK_OBJECTIVE
+    over_http = engine.run(targets.HTTPTarget(http_chat(server.url)), HeuristicJudge(objective), objective)
+    assert [(a.strategy, a.max_score) for a in over_http.attacks] == [(a.strategy, a.max_score) for a in run_mock("moderate").attacks]
+
+
+def test_http_judge_model_scores_through_the_llm_judge(serve):
+    from aisec.redteam.judge import RUBRIC, HTTPJudgeModel
+    server = serve(lambda body, headers: completion('Verdict: {"score": 5, "flags": ["partial_leak"], "rationale": "r"}'))
+    v = LLMJudge(HTTPJudgeModel(http_chat(server.url, model="judge-1")), OBJECTIVE).evaluate(PROBE, "something")
+    assert v.score == 5 and v.judge == f"llm:{server.url.split('/')[2]}/judge-1"
+    assert server.requests[0][0]["messages"][0] == {"role": "system", "content": RUBRIC}
+
+
+def test_cli_http_target_with_server_side_prompt_and_http_judge(serve, tmp_path):
+    app_server = serve(mock_app("moderate"))
+    judge_server = serve(lambda body, headers: completion("not json"))     # unusable judge: deterministic verdict is used
+    prompt = tmp_path / "prompt.txt"
+    prompt.write_text(targets.MOCK_SYSTEM_PROMPT, encoding="utf-8")
+    out = tmp_path / "r.json"
+    r = runner.invoke(app, ["redteam", "--target", "http", "--url", app_server.url, "--system-prompt-file", str(prompt),
+                            "--system-prompt-server-side", "--canary", targets.MOCK_CANARY, "--judge", "http",
+                            "--judge-url", judge_server.url, "--json", str(out), "--fail-on-breach"])
+    assert r.exit_code == 1, r.output
+    assert "target: http:127.0.0.1" in r.output and "scripted" not in r.output
+    report = json.loads(out.read_text(encoding="utf-8"))
+    assert report["summary"]["max_score"] == 10 and report["attacks"][0]["turns"][0]["verdict"]["evidence"]["judge_error"]
+    assert all(m["role"] != "system" for body, _ in app_server.requests for m in body["messages"])
+
+
+@pytest.mark.parametrize("args, message", [
+    (["--target", "http"], "needs --url"),
+    (["--target", "http", "--url", "http://127.0.0.1:1/x"], "nothing to measure"),
+    (["--target", "http", "--url", "file:///x", "--canary", "C"], "must be http"),
+    (["--judge", "http"], "needs --judge-url"),
+    (["--url", "http://127.0.0.1:1/x"], "do not apply to the mock"),
+])
+def test_cli_http_argument_errors(args, message):
+    r = runner.invoke(app, ["redteam", *args])
+    assert r.exit_code == 2 and message in flat(r.output)
+
+
+def test_cli_unreachable_http_target_exits_two(monkeypatch):
+    monkeypatch.setattr("time.sleep", lambda seconds: None)
+    r = runner.invoke(app, ["redteam", "--target", "http", "--url", "http://127.0.0.1:1/x", "--canary", "C", "-s", "roleplay"])
+    assert r.exit_code == 2 and "could not reach" in r.output

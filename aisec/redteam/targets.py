@@ -1,11 +1,19 @@
-"""Targets the engine can attack: a deterministic mock for offline runs, and a Claude model through the Anthropic SDK.
+"""Targets the engine can attack: a deterministic mock for offline runs, any HTTP endpoint that speaks the common
+chat-completions format (local model servers, hosted providers, your own application), and a Claude model through the
+Anthropic SDK.
 
-A target is stateless: it receives the whole conversation each time and returns the next assistant reply. To test your
-own application, wrap it in ``CallableTarget``.
+A target is stateless: it receives the whole conversation each time and returns the next assistant reply. Anything
+else can be wrapped in ``CallableTarget``.
 """
 from __future__ import annotations
 
+import json
+import os
 import re
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Protocol
@@ -154,6 +162,104 @@ class MockTarget:
             if re.sub(r"[^A-Z0-9]", "", MOCK_CANARY) in re.sub(r"[^A-Z0-9]", "", body.upper()):
                 return "[REDACTED BY OUTPUT FILTER]"
         return body
+
+
+# --- any chat-completions HTTP endpoint ------------------------------------------------------------------------------
+
+MAX_RESPONSE_BYTES = 2_000_000
+_RETRY_STATUS = frozenset({408, 409, 429, 500, 502, 503, 504})
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Refuse redirects: following one would send the bearer token and the transcript to a host the user never named."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[no-untyped-def]
+        return None
+
+
+_OPENER = urllib.request.build_opener(_NoRedirect)
+
+
+class HTTPChat:
+    """POSTs ``{"model": ..., "messages": [...]}`` to ``url`` and reads the reply from ``response_path``.
+
+    The defaults match the chat-completions format served by local model servers (Ollama, LM Studio, vLLM,
+    llama.cpp) and most hosted providers. For an application with a different response shape, set ``response_path``
+    (dot-separated keys and list indexes, e.g. ``reply.text``). The API key is read from the environment variable
+    named by ``api_key_env`` and sent as a bearer token; it is never taken from the command line or written anywhere.
+    """
+
+    def __init__(self, url: str, model: str | None = None, *, api_key_env: str | None = None,
+                 response_path: str = "choices.0.message.content", timeout: float = 120.0, retries: int = 2,
+                 sleep: Callable[[float], None] | None = None) -> None:
+        parsed = urllib.parse.urlsplit(url)
+        if parsed.scheme not in ("http", "https") or not parsed.netloc:
+            raise ValueError(f"target URL must be http(s)://host/...: {url!r}")
+        self.url, self.model, self.timeout, self.retries = url, model, timeout, retries
+        self._sleep = sleep or (lambda seconds: time.sleep(seconds))
+        self.response_path = [part for part in response_path.split(".") if part]
+        if not self.response_path:
+            raise ValueError("response path must name at least one key")
+        self._headers = {"Content-Type": "application/json", "Accept": "application/json"}
+        if api_key_env:
+            key = os.environ.get(api_key_env)
+            if not key:
+                raise TargetError(f"environment variable {api_key_env} is not set")
+            self._headers["Authorization"] = f"Bearer {key}"
+        self.name = f"{parsed.netloc}{'/' + model if model else ''}"
+
+    def chat(self, system: str | None, messages: list[Message]) -> str:
+        body: dict[str, Any] = {"messages": ([{"role": "system", "content": system}] if system else []) + messages}
+        if self.model:
+            body["model"] = self.model
+        data = json.dumps(body).encode()
+        for attempt in range(self.retries + 1):
+            request = urllib.request.Request(self.url, data=data, headers=self._headers, method="POST")  # noqa: S310 - scheme checked in __init__
+            try:
+                with _OPENER.open(request, timeout=self.timeout) as response:
+                    raw = response.read(MAX_RESPONSE_BYTES + 1)
+                break
+            except urllib.error.HTTPError as e:
+                if e.code in _RETRY_STATUS and attempt < self.retries:
+                    self._sleep(2.0 ** attempt)
+                    continue
+                detail = e.read(500).decode("utf-8", errors="replace").strip()
+                raise TargetError(f"{self.url} answered HTTP {e.code}: {detail or e.reason}") from e
+            except (urllib.error.URLError, TimeoutError, OSError) as e:
+                if attempt < self.retries:
+                    self._sleep(2.0 ** attempt)
+                    continue
+                raise TargetError(f"could not reach {self.url}: {getattr(e, 'reason', e)}") from e
+        if len(raw) > MAX_RESPONSE_BYTES:
+            raise TargetError(f"{self.url} sent more than {MAX_RESPONSE_BYTES} bytes")
+        try:
+            value: Any = json.loads(raw)
+        except ValueError as e:
+            raise TargetError(f"{self.url} did not answer with JSON") from e
+        for part in self.response_path:
+            try:
+                value = value[int(part)] if isinstance(value, list) else value[part]
+            except (KeyError, IndexError, ValueError, TypeError) as e:
+                raise TargetError(f"reply from {self.url} has no '{'.'.join(self.response_path)}' (stopped at '{part}')") from e
+        if value is None:
+            return ""       # some servers send null content for an empty reply
+        if not isinstance(value, str):
+            raise TargetError(f"'{'.'.join(self.response_path)}' in the reply from {self.url} is not text")
+        return value
+
+
+class HTTPTarget:
+    """A model or application behind an HTTP chat endpoint. With ``system_prompt`` the prompt is sent as the system
+    message (testing a model under your prompt); with ``None`` nothing is sent and the application's own server-side
+    prompt is what is being tested."""
+
+    def __init__(self, chat: HTTPChat, system_prompt: str | None = None) -> None:
+        self.chat = chat
+        self.system_prompt = system_prompt
+        self.name = f"http:{chat.name}"
+
+    def send(self, messages: list[Message]) -> str:
+        return self.chat.chat(self.system_prompt, messages)
 
 
 # --- Claude via the Anthropic SDK ------------------------------------------------------------------------------------
