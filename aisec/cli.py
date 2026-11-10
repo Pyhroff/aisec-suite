@@ -480,6 +480,10 @@ def redteam(
     judge_model: Optional[str] = typer.Option(None, "--judge-model", help="Model ID for --judge http or claude."),
     judge_url: Optional[str] = typer.Option(None, "--judge-url", help="Chat-completions endpoint for --judge http."),
     judge_api_key_env: Optional[str] = typer.Option(None, "--judge-api-key-env", help="Environment variable holding the bearer token for --judge-url."),
+    attacker: str = typer.Option("none", "--attacker", help="Model-driven attacker that writes each message itself: none (default, use the scripted strategies), http or claude. With no -s it replaces the scripted strategies; with -s it runs alongside them."),
+    attacker_model: Optional[str] = typer.Option(None, "--attacker-model", help="Model ID for --attacker http or claude."),
+    attacker_url: Optional[str] = typer.Option(None, "--attacker-url", help="Chat-completions endpoint for --attacker http."),
+    attacker_api_key_env: Optional[str] = typer.Option(None, "--attacker-api-key-env", help="Environment variable holding the bearer token for --attacker-url."),
     json_out: Optional[pathlib.Path] = typer.Option(None, "--json", help="Write the full JSON report here."),
     fail_on_breach: bool = typer.Option(False, "--fail-on-breach", help="Exit 1 when any attack reaches --breach-score."),
 ) -> None:
@@ -530,7 +534,20 @@ def redteam(
             the_judge = judges.LLMJudge(judges.HTTPJudgeModel(judge_chat), objective)
         else:
             raise typer.BadParameter("--judge must be heuristic, mock-llm, http or claude")
-        result = engine.run(the_target, the_judge, objective, strategies=strategy, max_turns=max_turns, breach_score=breach_score)
+
+        selected: list = list(strategy)
+        if attacker != "none":
+            from aisec.redteam.attacker import LLMAttacker
+            if attacker == "http":
+                if not attacker_url:
+                    raise typer.BadParameter("--attacker http needs --attacker-url")
+                attacker_chat: targets.HTTPChat | targets.AnthropicChat = targets.HTTPChat(attacker_url, attacker_model, api_key_env=attacker_api_key_env)
+            elif attacker == "claude":
+                attacker_chat = targets.AnthropicChat(attacker_model) if attacker_model else targets.AnthropicChat()
+            else:
+                raise typer.BadParameter("--attacker must be none, http or claude")
+            selected.append(LLMAttacker(attacker_chat, objective))
+        result = engine.run(the_target, the_judge, objective, strategies=selected or None, max_turns=max_turns, breach_score=breach_score)
     except (ValueError, re.error) as e:
         raise typer.BadParameter(str(e)) from e
     except targets.TargetError as e:

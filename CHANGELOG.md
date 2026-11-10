@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- **`aisec redteam --attacker`** (`aisec/redteam/attacker.py`): a model-driven attacker that reads each reply and the judge's score and writes the next message itself, instead of the three scripted strategies. `--attacker http|claude` with `--attacker-url` / `--attacker-model` / `--attacker-api-key-env`; with no `-s` it replaces the scripted strategies, with `-s` it runs alongside them. The attacker is told only that a secret exists, never its value, so a run still measures extraction; a capable attacker model that declines is reported as a target error, not a silent pass. The engine now accepts built `Strategy` instances as well as names. Still not evaluated against a real model.
 
 ## 0.7.0
 - **`aisec redteam --target http`** (`aisec/redteam/targets.py`): attack any chat-completions HTTP endpoint (local model servers, hosted providers, your own application) with no extra dependency. `--api-key-env` names the environment variable holding the token, `--response-path` adapts to other response shapes, `--system-prompt-server-side` tests an application that holds its own prompt, and `--judge http` uses such an endpoint as the LLM judge. Redirects are refused.

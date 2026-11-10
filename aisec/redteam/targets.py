@@ -283,6 +283,7 @@ class AnthropicChat:
         self._anthropic = anthropic
         self.client = client if client is not None else anthropic.Anthropic()
         self.model = model
+        self.name = model
         self.max_tokens = max_tokens
 
     def chat(self, system: str | None, messages: list[Message], schema: dict | None = None) -> str:
