@@ -182,9 +182,21 @@ like the prompt it tested.
 
 Exit codes: `0` finished (or no breach), `1` breach with `--fail-on-breach`, `2` bad arguments or the target could not be reached.
 
+## Repeatable runs
+
+A chat endpoint samples its replies, so the same attack can breach on one run and fail on the next. With `--target http`,
+`--temperature 0 --seed 7` sends both settings to the endpoint; on servers that honour a seed (llama.cpp and Ollama do)
+the target then answers the scripted strategies the same way every time. Without them nothing is sent and the server's
+defaults apply. A model-driven attacker or an LLM judge still samples on its own.
+
 ## Limits
 
 * The three scripted strategies use fixed wording. A target that resists them has resisted these attacks, not attacks
   in general. `--attacker` lifts this by letting a model write the messages, but then the attack is only as good as
   that model.
-* Not evaluated against any real model or public jailbreak benchmark yet; there is no measured success rate to quote.
+* Evaluated once, against one small model, and not against any public jailbreak benchmark. On the pre-registered
+  six-scenario suite (`benchmarks/redteam/`, `docs/REDTEAM_EVAL_PROTOCOL.md`), a 4-bit Llama 3.2 3B gave up its planted
+  token to at least one strategy in 4 of 6 scenarios (Wilson 95% interval 30-90%); `crescendo` extracted nothing.
+  That is one sampled run with no transcripts kept, so it shows the engine can breach a real model, not how often.
+  Results and limits: [`STUDY.md`](STUDY.md) section 3j. `python -m benchmarks.redteam.run --url <endpoint> --model <id>`
+  runs the suite against another model.

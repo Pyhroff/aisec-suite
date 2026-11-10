@@ -519,6 +519,29 @@ def test_http_target_retries_overload_then_succeeds_and_gives_up_after_the_limit
     assert len(always.requests) == 3
 
 
+def test_http_target_sends_sampling_settings_only_when_given(serve):
+    server = serve(lambda body, headers: completion("ok"))
+    http_chat(server.url).chat(None, [])
+    http_chat(server.url, temperature=0.0, seed=7).chat(None, [])
+    default, pinned = (request[0] for request in server.requests)
+    assert "temperature" not in default and "seed" not in default       # server defaults apply unless asked
+    assert pinned["temperature"] == 0.0 and pinned["seed"] == 7
+    with pytest.raises(ValueError, match="temperature"):
+        http_chat(server.url, temperature=-1)
+
+
+def test_cli_passes_temperature_and_seed_to_the_http_target_only(serve, tmp_path):
+    server = serve(lambda body, headers: completion("I can't help with that."))
+    prompt = tmp_path / "p.txt"
+    prompt.write_text(PROMPT, encoding="utf-8")
+    r = runner.invoke(app, ["redteam", "--target", "http", "--url", server.url, "--system-prompt-file", str(prompt),
+                            "-s", "roleplay", "--max-turns", "1", "--temperature", "0", "--seed", "11"])
+    assert r.exit_code == 0, r.output
+    assert server.requests[0][0]["temperature"] == 0.0 and server.requests[0][0]["seed"] == 11
+    r = runner.invoke(app, ["redteam", "--seed", "11"])
+    assert r.exit_code == 2 and "http only" in r.output
+
+
 def test_http_target_does_not_follow_redirects_with_the_token(serve, monkeypatch):
     monkeypatch.setenv("MY_KEY", "tok-123")
     elsewhere = serve(lambda body, headers: completion("stolen"))
