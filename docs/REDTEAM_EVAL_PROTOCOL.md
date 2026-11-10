@@ -58,3 +58,7 @@ anything is scored or aggregated:
 - A conversation whose model call fails is listed under `errors` and left out of the rates, instead of ending the run
   with nothing written. `--timeout` sets the seconds allowed per model call.
 - The report records the attacker model, the start time and the commit the runner was at.
+- `--temperature` and `--seed` are sent to the target when given, and recorded in the report. The first run used
+  neither, so the target sampled at its server's default and its scripted strategies are not repeatable. Runs on
+  further models should pass `--temperature 0 --seed <n>` and say so; that removes the target's sampling as a source
+  of variation, not the attacker's.

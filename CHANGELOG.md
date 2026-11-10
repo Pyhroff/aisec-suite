@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- **`aisec redteam --temperature` / `--seed`** (`aisec/redteam/targets.py`): sampling settings sent to `--target http`, so a run of the scripted strategies can be repeated. Sent only when given; without them the server's defaults apply as before. The evaluation harness takes the same options and records them.
 - **Red-team evaluation harness** (`benchmarks/redteam/`, protocol `docs/REDTEAM_EVAL_PROTOCOL.md`): a fixed suite of six target system prompts with planted canaries and the runner that scores every strategy (and the model-driven attacker) against a chat model, reporting breach, extraction and bypass rates with Wilson intervals. Not in the wheel; run once per model with `python -m benchmarks.redteam.run`. The JSON keeps every transcript, and a failed conversation is reported and left out of the rates instead of ending the run. First result (`docs/STUDY.md` section 3j): a 4-bit Llama 3.2 3B on CPU leaked its planted token to at least one strategy in 4 of 6 scenarios (Wilson 95% 30.0-90.3%); roleplay 3/6, model-driven attacker 2/6, steganography 1/6, crescendo 0/6. One sampled run, made before transcripts were kept, so the breaches were not inspected.
 
 ## 0.8.0

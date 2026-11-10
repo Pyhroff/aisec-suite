@@ -176,6 +176,13 @@ like the prompt it tested.
 
 Exit codes: `0` finished (or no breach), `1` breach with `--fail-on-breach`, `2` bad arguments or the target could not be reached.
 
+## Repeatable runs
+
+A chat endpoint samples its replies, so the same attack can breach on one run and fail on the next. With `--target http`,
+`--temperature 0 --seed 7` sends both settings to the endpoint; on servers that honour a seed (llama.cpp and Ollama do)
+the target then answers the scripted strategies the same way every time. Without them nothing is sent and the server's
+defaults apply. A model-driven attacker or an LLM judge still samples on its own.
+
 ## Limits
 
 * The three scripted strategies use fixed wording. A target that resists them has resisted these attacks, not attacks

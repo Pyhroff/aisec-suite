@@ -143,6 +143,7 @@ def test_cli_dry_run_executes_the_harness_against_the_mock(capsys, tmp_path):
     report = json.loads(out.read_text(encoding="utf-8"))
     assert report["scenarios"] == 1 and report["overall"]["breach"]["pct"] == 100.0
     assert report["run"]["dry_run"] is True and report["run"]["started_at"] and report["transcripts"]
+    assert report["run"]["target_sampling"] == {"temperature": None, "seed": None}
 
 
 @pytest.mark.parametrize("argv, message", [

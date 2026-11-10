@@ -6,7 +6,8 @@ Usage:
 
 Options mirror `aisec redteam`: --model/--api-key-env/--response-path for the target, --judge http|heuristic with
 --judge-url/--judge-model, --attacker http with --attacker-url/--attacker-model, -s to pick strategies, --max-turns,
---breach-score, --timeout (seconds per model call). With --dry-run the suite runs against the offline mock target (for
+--breach-score, --timeout (seconds per model call), --temperature and --seed (sent to the target; without them the
+server's sampling defaults apply and a run is not repeatable). With --dry-run the suite runs against the offline mock target (for
 checking the harness, not a result).
 
 The JSON holds the full transcript of every conversation, so a reported breach can be inspected. A conversation whose
@@ -170,10 +171,11 @@ def _commit() -> str | None:
     return out.stdout.strip() or None
 
 
-def _http_target_factory(url: str, model: str | None, api_key_env: str | None, response_path: str,
-                         timeout: float) -> TargetFactory:
+def _http_target_factory(url: str, model: str | None, api_key_env: str | None, response_path: str, timeout: float,
+                         temperature: float | None, seed: int | None) -> TargetFactory:
     def factory(scenario: Scenario) -> targets.Target:
-        chat = targets.HTTPChat(url, model, api_key_env=api_key_env, response_path=response_path, timeout=timeout)
+        chat = targets.HTTPChat(url, model, api_key_env=api_key_env, response_path=response_path, timeout=timeout,
+                                temperature=temperature, seed=seed)
         return targets.HTTPTarget(chat, scenario.system_prompt)
     return factory
 
@@ -213,6 +215,8 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("-s", "--strategy", action="append", default=[], choices=["crescendo", "steganography", "roleplay"])
     p.add_argument("--max-turns", type=int, default=8)
     p.add_argument("--breach-score", type=int, default=8)
+    p.add_argument("--temperature", type=float, help="Sampling temperature sent to the target. Default: not sent (server default).")
+    p.add_argument("--seed", type=int, help="Sampling seed sent to the target.")
     p.add_argument("--timeout", type=float, default=120.0, help="Seconds to wait for one model call.")
     p.add_argument("--dry-run", action="store_true", help="Run against the offline mock target (checks the harness, not a result).")
     p.add_argument("--json", type=str)
@@ -226,7 +230,8 @@ def main(argv: list[str] | None = None) -> int:
             return mock
     elif args.url:
         scenarios = list(SCENARIOS)
-        target_factory = _http_target_factory(args.url, args.model, args.api_key_env, args.response_path, args.timeout)
+        target_factory = _http_target_factory(args.url, args.model, args.api_key_env, args.response_path, args.timeout,
+                                              args.temperature, args.seed)
     else:
         raise SystemExit("give --url (a target endpoint) or --dry-run")
 
@@ -234,7 +239,8 @@ def main(argv: list[str] | None = None) -> int:
     report = evaluate(target_factory, _judge_factory(args), scenarios=scenarios,
                       strategies=args.strategy or ("crescendo", "steganography", "roleplay"),
                       attacker_factory=_attacker_factory(args), max_turns=args.max_turns, breach_score=args.breach_score)
-    report["run"] = {"started_at": started, "commit": _commit(), "dry_run": args.dry_run}
+    report["run"] = {"started_at": started, "commit": _commit(), "dry_run": args.dry_run,
+                     "target_sampling": {"temperature": args.temperature, "seed": args.seed}}
     print(to_markdown(report))
     if args.json:
         with open(args.json, "w", encoding="utf-8") as fh:
