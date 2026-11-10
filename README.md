@@ -27,7 +27,7 @@ It also holds up against cheap obfuscation: of the seen attacks it catches, at l
 
 Reachability (`--reach`) now follows commands across IPC bridges into engine-side scripts: on labelled findings it never wrongly cleared a real finding, and removed 4 of 30 unseen false positives (single-language reach removed none).
 
-Every number on this page except the guard v2-v4 results is re-derived from public data weekly by the [benchmarks workflow](.github/workflows/benchmarks.yml), which fails if any of them moves. The guard v2-v4 numbers (sections 3g-3i of the study) were each run once under a pre-registered protocol and can be reproduced with `benchmarks/guard_v2_eval.py`, `guard_v3_eval.py` and `guard_v4_eval.py` against the public datasets; they are not in the weekly gate.
+Every number on this page except the guard v2-v4 results and the red-team run (section 3j, a single sampled run against a local model) is re-derived from public data weekly by the [benchmarks workflow](.github/workflows/benchmarks.yml), which fails if any of them moves. The guard v2-v4 numbers (sections 3g-3i of the study) were each run once under a pre-registered protocol and can be reproduced with `benchmarks/guard_v2_eval.py`, `guard_v3_eval.py` and `guard_v4_eval.py` against the public datasets; they are not in the weekly gate.
 
 Across 135 real MCP servers I found **no tool poisoning in the wild**. Unconstrained-scope findings were by-design capabilities, not vulnerabilities, which is why the gate is a review aid rather than a vulnerability scanner.
 
@@ -83,8 +83,9 @@ aisec redteam --target http --url $URL --system-prompt-file prompt.txt --canary 
   --attacker http --attacker-url $URL   # a model writes the attack itself instead of the scripted strategies
 ```
 
-The mock target is scripted, so the first command checks the engine, not any model. It has not been evaluated against
-real models yet. Details and limits: [`docs/REDTEAM.md`](docs/REDTEAM.md).
+The mock target is scripted, so the first command checks the engine, not any model. Against a real model it has been
+measured once: on a pre-registered suite of six system prompts, a 4-bit Llama 3.2 3B leaked its planted token in 4 of 6
+(95% interval 30-90%, one run, no transcripts kept; `docs/STUDY.md` section 3j). Details and limits: [`docs/REDTEAM.md`](docs/REDTEAM.md).
 
 ## Runtime guard for MCP servers
 
