@@ -4,6 +4,7 @@ import collections
 import json
 import os
 import pathlib
+import re
 from typing import Optional
 
 import typer
@@ -454,6 +455,85 @@ def benchmark(
                 f"fpr={metrics['false_positive_rate']:.4f}"
             )
     raise typer.Exit(code)
+
+
+@app.command("redteam")
+def redteam(
+    target: str = typer.Option("mock", "--target", help="mock (offline, scripted) or claude (a Claude model run under --system-prompt-file)."),
+    defense: str = typer.Option("moderate", "--defense", help="Mock target defence level: weak, moderate or hardened."),
+    model: Optional[str] = typer.Option(None, "--model", help="Model ID for --target claude."),
+    system_prompt_file: Optional[pathlib.Path] = typer.Option(None, "--system-prompt-file", exists=True, dir_okay=False, help="System prompt to protect (required for --target claude)."),
+    canary: list[str] = typer.Option([], "--canary", help="Synthetic secret planted in the system prompt (repeatable)."),
+    forbidden: list[str] = typer.Option([], "--forbidden", help="Regex; a reply matching it breaks the system prompt's rules (repeatable)."),
+    strategy: list[str] = typer.Option([], "--strategy", "-s", help="crescendo, steganography or roleplay (repeatable; default all)."),
+    max_turns: int = typer.Option(8, "--max-turns", min=1, max=50, help="Turn budget per strategy."),
+    breach_score: int = typer.Option(8, "--breach-score", min=1, max=10, help="Judge score at or above which an attack counts as a breach."),
+    judge: str = typer.Option("heuristic", "--judge", help="heuristic (deterministic), mock-llm (LLM-judge path, offline stand-in) or claude (LLM-as-a-judge)."),
+    judge_model: Optional[str] = typer.Option(None, "--judge-model", help="Model ID for --judge claude."),
+    json_out: Optional[pathlib.Path] = typer.Option(None, "--json", help="Write the full JSON report here."),
+    fail_on_breach: bool = typer.Option(False, "--fail-on-breach", help="Exit 1 when any attack reaches --breach-score."),
+) -> None:
+    """Run adaptive multi-turn jailbreak attacks against an LLM target you are authorised to test."""
+    from aisec.redteam import engine, targets
+    from aisec.redteam import judge as judges
+    from aisec.redteam.model import Objective
+    from aisec.redteam.report import to_report
+
+    the_target: targets.Target
+    try:
+        if target == "mock":
+            if system_prompt_file or canary or forbidden or model:
+                raise typer.BadParameter("--system-prompt-file, --canary, --forbidden and --model apply to --target claude; the mock has its own")
+            mock = targets.MockTarget(defense)
+            the_target, objective = mock, mock.objective
+        elif target == "claude":
+            if system_prompt_file is None:
+                raise typer.BadParameter("--target claude needs --system-prompt-file")
+            prompt = system_prompt_file.read_text(encoding="utf-8")
+            missing = [c for c in canary if c not in prompt]
+            if missing:
+                raise typer.BadParameter(f"canary not present in the system prompt, so it could never leak: {', '.join(missing)}")
+            objective = Objective(system_prompt=prompt, canaries=tuple(canary), forbidden=tuple(forbidden))
+            the_target = targets.AnthropicTarget(prompt, model or targets.DEFAULT_MODEL)
+        else:
+            raise typer.BadParameter("--target must be mock or claude")
+
+        the_judge: judges.Judge
+        if judge == "heuristic":
+            the_judge = judges.HeuristicJudge(objective)
+        elif judge == "mock-llm":
+            the_judge = judges.LLMJudge(judges.MockJudgeModel(objective), objective)
+        elif judge == "claude":
+            the_judge = judges.LLMJudge(judges.ClaudeJudgeModel(judge_model), objective)
+        else:
+            raise typer.BadParameter("--judge must be heuristic, mock-llm or claude")
+        result = engine.run(the_target, the_judge, objective, strategies=strategy, max_turns=max_turns, breach_score=breach_score)
+    except (ValueError, re.error) as e:
+        raise typer.BadParameter(str(e)) from e
+    except targets.TargetError as e:
+        typer.echo(f"error: {e}", err=True)
+        raise typer.Exit(code=2) from e
+
+    report = to_report(result)
+    if json_out:
+        json_out.parent.mkdir(parents=True, exist_ok=True)
+        json_out.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    typer.echo(f"target: {result.target} | judge: {result.judge} | breach score: {breach_score}")
+    for a in report["attacks"]:
+        path = " -> ".join(f"{step['technique'].split('/', 1)[1]}={step['score']}" for step in a["attack_path"])
+        typer.echo(f"  [{a['outcome'].upper():8}] {a['strategy']:14} max {a['max_score']:>2}/10 in {a['turns_used']} turns | {path}")
+    summary = report["summary"]
+    typer.echo(
+        f"result: {summary['verdict']} | attacks breached: {summary['attacks_breached']}/{summary['attacks_run']} | "
+        f"system prompt extracted: {'yes' if summary['system_prompt_extracted'] else 'no'} | "
+        f"bypassed: {'yes' if summary['system_prompt_bypassed'] else 'no'}"
+    )
+    if target == "mock":
+        typer.echo("note: the mock target is scripted; this run checks the engine, not any real model.")
+    if json_out:
+        typer.echo(f"report: {json_out}")
+    if fail_on_breach and result.breached:
+        raise typer.Exit(code=1)
 
 
 if __name__ == "__main__":
