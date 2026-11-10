@@ -30,3 +30,21 @@ def test_enriched_finding_metadata_is_exported():
     assert d["remediation"] == "Restrict the path scope"
     result = to_sarif([f])["runs"][0]["results"][0]
     assert result["properties"]["confidence"] == 0.82
+
+
+def test_reported_version_matches_the_packaged_version():
+    import pathlib
+    import re
+
+    import aisec
+    pyproject = (pathlib.Path(__file__).parent.parent / "pyproject.toml").read_text(encoding="utf-8")
+    assert aisec.__version__ == re.search(r'^version = "([^"]+)"', pyproject, re.M).group(1)
+
+
+def test_version_flag_prints_the_version_without_a_command():
+    from typer.testing import CliRunner
+
+    import aisec
+    from aisec.cli import app
+    r = CliRunner().invoke(app, ["--version"])
+    assert r.exit_code == 0 and r.output.strip() == aisec.__version__
