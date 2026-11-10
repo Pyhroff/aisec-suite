@@ -469,6 +469,8 @@ def redteam(
     url: Optional[str] = typer.Option(None, "--url", help="Chat-completions endpoint for --target http, e.g. http://localhost:11434/v1/chat/completions."),
     api_key_env: Optional[str] = typer.Option(None, "--api-key-env", help="Name of the environment variable holding the bearer token for --url."),
     response_path: str = typer.Option("choices.0.message.content", "--response-path", help="Where the reply text is in the endpoint's JSON response."),
+    temperature: Optional[float] = typer.Option(None, "--temperature", min=0.0, help="Sampling temperature sent to --target http. Default: not sent, so the server's own default applies and runs differ."),
+    seed: Optional[int] = typer.Option(None, "--seed", help="Sampling seed sent to --target http. With --temperature 0 this makes a run repeatable on servers that honour it."),
     system_prompt_file: Optional[pathlib.Path] = typer.Option(None, "--system-prompt-file", exists=True, dir_okay=False, help="System prompt to protect (required for --target claude)."),
     server_side_prompt: bool = typer.Option(False, "--system-prompt-server-side", help="With --target http: the application holds the prompt itself, so do not send --system-prompt-file; use it only to measure leaks."),
     canary: list[str] = typer.Option([], "--canary", help="Synthetic secret planted in the system prompt (repeatable)."),
@@ -498,6 +500,8 @@ def redteam(
         if target == "mock":
             if system_prompt_file or canary or forbidden or model or url:
                 raise typer.BadParameter("--system-prompt-file, --canary, --forbidden, --model and --url do not apply to the mock target; it has its own")
+            if temperature is not None or seed is not None:
+                raise typer.BadParameter("--temperature and --seed apply to --target http only")
             mock = targets.MockTarget(defense)
             the_target, objective = mock, mock.objective
         elif target in ("claude", "http"):
@@ -509,13 +513,15 @@ def redteam(
             if target == "claude":
                 if prompt is None:
                     raise typer.BadParameter("--target claude needs --system-prompt-file")
+                if temperature is not None or seed is not None:
+                    raise typer.BadParameter("--temperature and --seed apply to --target http only")
                 the_target = targets.AnthropicTarget(prompt, model or targets.DEFAULT_MODEL)
             else:
                 if not url:
                     raise typer.BadParameter("--target http needs --url")
                 if prompt is None and not canary and not forbidden:
                     raise typer.BadParameter("nothing to measure: give --system-prompt-file, --canary or --forbidden")
-                chat = targets.HTTPChat(url, model, api_key_env=api_key_env, response_path=response_path)
+                chat = targets.HTTPChat(url, model, api_key_env=api_key_env, response_path=response_path, temperature=temperature, seed=seed)
                 the_target = targets.HTTPTarget(chat, None if server_side_prompt else prompt)
         else:
             raise typer.BadParameter("--target must be mock, http or claude")

@@ -187,15 +187,23 @@ class HTTPChat:
     llama.cpp) and most hosted providers. For an application with a different response shape, set ``response_path``
     (dot-separated keys and list indexes, e.g. ``reply.text``). The API key is read from the environment variable
     named by ``api_key_env`` and sent as a bearer token; it is never taken from the command line or written anywhere.
+
+    ``temperature`` and ``seed`` are sent only when given; otherwise the server's own sampling defaults apply, which
+    usually means two runs differ. Set both (temperature 0, any seed) when a run has to be repeatable. Whether a seed
+    is honoured is up to the server.
     """
 
     def __init__(self, url: str, model: str | None = None, *, api_key_env: str | None = None,
                  response_path: str = "choices.0.message.content", timeout: float = 120.0, retries: int = 2,
+                 temperature: float | None = None, seed: int | None = None,
                  sleep: Callable[[float], None] | None = None) -> None:
         parsed = urllib.parse.urlsplit(url)
         if parsed.scheme not in ("http", "https") or not parsed.netloc:
             raise ValueError(f"target URL must be http(s)://host/...: {url!r}")
         self.url, self.model, self.timeout, self.retries = url, model, timeout, retries
+        if temperature is not None and temperature < 0:
+            raise ValueError("temperature must be 0 or more")
+        self.temperature, self.seed = temperature, seed
         self._sleep = sleep or (lambda seconds: time.sleep(seconds))
         self.response_path = [part for part in response_path.split(".") if part]
         if not self.response_path:
@@ -212,6 +220,10 @@ class HTTPChat:
         body: dict[str, Any] = {"messages": ([{"role": "system", "content": system}] if system else []) + messages}
         if self.model:
             body["model"] = self.model
+        if self.temperature is not None:
+            body["temperature"] = self.temperature
+        if self.seed is not None:
+            body["seed"] = self.seed
         data = json.dumps(body).encode()
         for attempt in range(self.retries + 1):
             request = urllib.request.Request(self.url, data=data, headers=self._headers, method="POST")  # noqa: S310 - scheme checked in __init__
