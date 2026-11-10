@@ -75,7 +75,7 @@ reply 1-10 with a deterministic or LLM judge, and writes a JSON report with the 
 whether the prompt was extracted or bypassed.
 
 ```bash
-aisec redteam --json redteam.json                         # offline run against the built-in mock target
+aisec redteam --json redteam.json --html redteam.html     # offline run against the built-in mock target; the HTML page shows every turn
 aisec redteam --target http --url http://localhost:11434/v1/chat/completions --model llama3.2 \
   --system-prompt-file prompt.txt --canary "ZX-CANARY-4411" --fail-on-breach   # a local or hosted model, or your own app
 aisec redteam --target claude --system-prompt-file prompt.txt --canary "ZX-CANARY-4411" --judge claude
