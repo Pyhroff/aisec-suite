@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.9.1
+- **Cross-platform tool paths** (`aisec/extract.py`): relative file paths in extracted tool metadata are normalized using `.as_posix()`, ensuring uniform forward slashes across Windows, Linux, and macOS.
+- **Refusal recognition** (`aisec/redteam/judge.py`): heuristic judging now recognizes modern frontier refusal patterns ("I apologize, but I must decline...", "I am not permitted to fulfill...", "I must refuse...") to avoid misclassifying polite refusals as un-flagged benign responses.
+- **Bolt performance optimization** (`aisec/extract.py`): pre-compiled schema property regexes with word boundaries (`\b`) to eliminate catastrophic backtracking on mismatched identifiers and unanchored code blocks.
+
 ## 0.9.0
 - **`aisec redteam --html`** (`aisec/redteam/html_report.py`): writes the run as one self-contained HTML page with every payload, reply, verdict and the judge's evidence, breaching turns opened, so a person can check whether a reported breach is real. No scripts and no network loads (enforced by a Content-Security-Policy); everything the attacker and the target wrote is escaped. Contains whatever the target leaked, like the JSON report.
 - **`aisec redteam --temperature` / `--seed`** (`aisec/redteam/targets.py`): sampling settings sent to `--target http`, so a run of the scripted strategies can be repeated. Sent only when given; without them the server's defaults apply as before. The evaluation harness takes the same options and records them.

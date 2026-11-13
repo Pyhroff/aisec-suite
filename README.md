@@ -139,7 +139,7 @@ For maximum reproducibility in production, pin both the `aisec-suite` action ref
 
 ## Package and release status
 
-Latest release: **0.9.0** (PyPI: 0.2.0, 0.3.0, 0.4.0, 0.5.0, 0.6.0, 0.7.0, 0.8.0, 0.9.0; earlier 2.x labels in the repository history were never published). Pin versions in CI rather than tracking the default branch. Policy as code, baselines, finding lifecycle, reporting formats and the release pipeline are documented in [`docs/REFERENCE.md`](docs/REFERENCE.md).
+Latest release: **0.9.1** (PyPI: 0.2.0, 0.3.0, 0.4.0, 0.5.0, 0.6.0, 0.7.0, 0.8.0, 0.9.0, 0.9.1; earlier 2.x labels in the repository history were never published). Pin versions in CI rather than tracking the default branch. Policy as code, baselines, finding lifecycle, reporting formats and the release pipeline are documented in [`docs/REFERENCE.md`](docs/REFERENCE.md).
 
 ## Architecture
 
