@@ -232,7 +232,7 @@ def extract_tools(root: str | pathlib.Path, include_tests: bool = False) -> list
     tools: list[dict] = []
     for p in _files(root, {".py"}, include_tests):
         for t in _py_tools(p):
-            tools.append({**t, "file": str(p.relative_to(root))})
+            tools.append({**t, "file": p.relative_to(root).as_posix()})
     ts = list(_files(root, {".ts", ".js", ".mjs", ".tsx"}, include_tests))
     consts: dict = {}
     for p in ts:
@@ -243,7 +243,7 @@ def extract_tools(root: str | pathlib.Path, include_tests: bool = False) -> list
     for p in ts:
         try:
             for t in _ts_tools(p, consts):
-                tools.append({**t, "file": str(p.relative_to(root))})
+                tools.append({**t, "file": p.relative_to(root).as_posix()})
         except Exception:  # noqa: S110 - an unreadable file must not abort the scan
             pass
     seen, uniq = set(), []
