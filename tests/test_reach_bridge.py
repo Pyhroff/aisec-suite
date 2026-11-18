@@ -153,3 +153,29 @@ def test_comments_and_strings_do_not_create_arms_or_sinks(tmp_path):
 def test_without_a_repository_root_there_is_no_bridge_claim(tools):
     t = {k: v for k, v in tools["game_get_property"].items() if k != "root"}
     assert reach.assess(t).verdict == "unknown"
+
+
+def test_python_dispatcher_bridge_resolves_sink_and_safe(tmp_path):
+    from aisec.reach_bridge import resolve
+    py_file = tmp_path / "engine.py"
+    py_file.write_text(
+        '''
+import subprocess
+
+def run_cmd(arg):
+    return subprocess.run(arg, shell=False)
+
+def dispatch(command, arg):
+    if command == "exec_tool":
+        return run_cmd(arg)
+    elif command == "ping":
+        return "pong"
+''',
+        encoding="utf-8",
+    )
+    res_sink = resolve("exec_tool", tmp_path)
+    assert "command" in res_sink.kinds
+
+    res_safe = resolve("ping", tmp_path)
+    assert res_safe.complete
+    assert not res_safe.kinds
