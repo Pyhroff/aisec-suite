@@ -23,6 +23,7 @@ from aisec.adapters import (
 )
 from aisec.benchmark import load_metrics, run_range
 from aisec.guard_v3 import GuardV3
+from aisec.html_report import to_html
 from aisec.lifecycle import classify, load_baseline
 from aisec.model import SEVERITY_ORDER, at_least
 from aisec.modules import available_modules
@@ -99,9 +100,11 @@ def policy_show(profile: str = typer.Argument(..., help="Built-in profile: stric
     typer.echo(json.dumps(validate_policy(policy), indent=2, sort_keys=True))
 
 
-def _emit(findings: list, *, json_out: Optional[pathlib.Path], sarif: Optional[pathlib.Path]) -> None:
+def _emit(findings: list, *, json_out: Optional[pathlib.Path], sarif: Optional[pathlib.Path], html_out: Optional[pathlib.Path] = None, target: str = ".") -> None:
     if sarif:
         sarif.write_text(json.dumps(to_sarif(findings), indent=2), encoding="utf-8")
+    if html_out:
+        html_out.write_text(to_html(findings, target=target), encoding="utf-8")
     if json_out:
         json_out.write_text(json.dumps([f.to_dict() for f in findings], indent=2), encoding="utf-8")
 
@@ -113,6 +116,7 @@ def scan(
     all_modules: bool = typer.Option(False, "--all", help="Run every native suite module against the repository where applicable."),
     rag: Optional[pathlib.Path] = typer.Option(None, "--rag", help="Directory of RAG source documents."),
     sarif: Optional[pathlib.Path] = typer.Option(None, "--sarif", help="Write SARIF 2.1.0 here."),
+    html_out: Optional[pathlib.Path] = typer.Option(None, "--html", help="Write self-contained HTML report here."),
     json_out: Optional[pathlib.Path] = typer.Option(None, "--json", help="Write normalized findings as JSON."),
     fail_on: Optional[str] = typer.Option(None, "--fail-on", help="Exit 1 at low|medium|high|critical."),
     policy_profile: Optional[str] = typer.Option(None, "--policy-profile", help="Built-in policy profile: strict, balanced, or dev."),
@@ -237,10 +241,10 @@ def scan(
             fail_on = profile.fail_on
         warnings.append(f"using built-in policy profile: {policy_profile}")
 
-    _finish(path, findings, n_tools, warnings, crashed, fail_on, baseline, write_baseline, sarif, json_out, summary)
+    _finish(path, findings, n_tools, warnings, crashed, fail_on, baseline, write_baseline, sarif, json_out, summary, html_out)
 
 
-def _finish(path, findings, n_tools, warnings, crashed, fail_on, baseline, write_baseline, sarif, json_out, summary):
+def _finish(path, findings, n_tools, warnings, crashed, fail_on, baseline, write_baseline, sarif, json_out, summary, html_out=None):
     findings.sort(key=lambda f: (-SEVERITY_ORDER[f.severity], f.file, f.line, f.scanner, f.rule))
     if write_baseline:
         write_baseline.write_text(json.dumps(sorted({f.fingerprint for f in findings}), indent=2), encoding="utf-8")
@@ -257,7 +261,7 @@ def _finish(path, findings, n_tools, warnings, crashed, fail_on, baseline, write
         suppressed = lifecycle.existing_count
         findings = list(lifecycle.new)
 
-    _emit(findings, json_out=json_out, sarif=sarif)
+    _emit(findings, json_out=json_out, sarif=sarif, html_out=html_out, target=str(path))
     summary_path = summary or (
         pathlib.Path(os.environ["GITHUB_STEP_SUMMARY"]) if os.environ.get("GITHUB_STEP_SUMMARY") else None
     )

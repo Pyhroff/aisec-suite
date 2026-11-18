@@ -30,10 +30,21 @@ def to_sarif(findings: list[Finding]) -> dict:
     results = []
     for f in findings:
         rid = _rule_id(f)
-        rules.setdefault(rid, {"id": rid, "name": rid, "shortDescription": {"text": f.rule},
-                               "helpUri": _HELP.get(f.scanner, "https://github.com/Pyhroff/aisec-suite"),
-                               "properties": {"scanner": f.scanner, "security-severity": _SECURITY_SEVERITY[f.severity],
-                                              "tags": ["security", "ai-security", f.scanner]}})
+        if rid not in rules:
+            rule_obj: dict = {
+                "id": rid,
+                "name": rid,
+                "shortDescription": {"text": f.rule},
+                "helpUri": _HELP.get(f.scanner, "https://github.com/Pyhroff/aisec-suite"),
+                "properties": {
+                    "scanner": f.scanner,
+                    "security-severity": _SECURITY_SEVERITY[f.severity],
+                    "tags": ["security", "ai-security", f.scanner],
+                },
+            }
+            if f.remediation:
+                rule_obj["help"] = {"text": f.remediation, "markdown": f"**Remediation:** {f.remediation}"}
+            rules[rid] = rule_obj
         results.append({
             "ruleId": rid,
             "level": _LEVEL[f.severity],
