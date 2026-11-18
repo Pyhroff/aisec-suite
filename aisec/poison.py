@@ -41,6 +41,7 @@ _F = {  # feature -> patterns (per-sentence weights live in _W)
         r"\b(?:you|your)\b[^.\n]{0,8}\b(?:must|should|need to|will|are expected to|have to)\b",
         r"\b(?:before|after|prior to|once|whenever|each time|every time|any time|the first time|first|then)\b[^.\n]{0,70}\b(?:call|use|invoke|run|read|open|send|post|attach|forward|include|route|record|submit|push|quote|copy|mirror|relay|repoint|rewrite|set)\b",
         r"\bfrom now on\b|\bstanding (?:guidance|rule|instruction)s?\b|\bgoing forward\b",
+        r"\b(?:for accurate results|to ensure (?:proper|correct|accurate) (?:execution|results|compatibility)|before (?:calling|invoking) this tool|note:\s*callers)\b[^.\n]{0,40}\b(?:ensure|always|must|include|pass|read|attach)\b",
     ],
     "cross_tool": [
         r"\b(?:other|every|all|any|each|whichever|whatever) (?:other )?(?:tools?|calls?|requests?|helpers?|integrations?|functions?)\b",
@@ -66,6 +67,7 @@ _F = {  # feature -> patterns (per-sentence weights live in _W)
         r"\b(?:present|describe|summari[sz]e|call|label|explain|characteri[sz]e|frame)\b[^.\n]{0,25}\b(?:it |this |that |the (?:update|tool|step|change)? ?)?(?:only )?\b(?:as|simply as)\b[^.\n]{0,30}\b(?:routine|standard|normal|maintenance|cache|tuning|a small|just|performance)\b",
         r"\b(?:it is|it's|this is|that is)\b[^.\n]{0,20}\b(?:internal|routine|housekeeping|standard)\b[^.\n]{0,30}\b(?:no (?:need|reason)|nothing|nobody)\b",
         r"\bwithout (?:asking|confirmation|confirming|prompting)\b|\bskip (?:the )?confirmation\b|\bhas already consented\b|\balready (?:consented|approved|agreed)\b",
+        r"\b(?:omit|exclude|withhold)\b[^.\n]{0,35}\b(?:from|in)\b[^.\n]{0,25}\b(?:response|summary|output|reply|explanation|report)\b",
     ],
     "override": [
         r"\b(?:ignore|disregard|override|overrides|supersede[sd]?|forget|bypass)\b[^.\n]{0,40}\b(?:previous|prior|earlier|above|instructions?|rules?|guidance|policy|user|confirmation|safeguards?)\b",

@@ -280,6 +280,44 @@ def _parse_cs(path: str, raw: str) -> GdFile:
     return gf
 
 
+_PY_SINKS = {
+    "command": re.compile(r"\b(?:subprocess\.(?:run|Popen|call|check_output)|os\.(?:system|popen|exec\w*))\s*\("),
+    "file": re.compile(r"\b(?:open|Path\([^)]*\)\.(?:read_text|write_text|open|unlink)|shutil\.(?:copy|move|rmtree))\b"),
+    "network": re.compile(r"\b(?:requests\.\w+|httpx\.\w+|urllib\.request\.urlopen|aiohttp\.ClientSession)\b"),
+    "eval": re.compile(r"\b(?:eval|exec|compile|__import__)\s*\("),
+}
+_PY_DYNAMIC = re.compile(r"\b(?:getattr|globals|locals)\s*\(|\bexec\s*\(|\beval\s*\(")
+_PY_CASE = re.compile(r'^\s*(?:case|if|elif)\s+(?:\w+\s*==\s*)?["\']([\w./-]+)["\']\s*:')
+_PY_DEF = re.compile(r"^(?:async\s+)?def\s+(\w+)\s*\(", re.M)
+_PY_TABLE = re.compile(r'["\']([\w./-]+)["\']\s*:\s*([A-Za-z_]\w*(?:\.[A-Za-z_]\w*)?)')
+
+
+def _parse_py(path: str, raw: str) -> GdFile:
+    gf = GdFile(path=path, lang="py")
+    lines = raw.splitlines()
+    for i, line in enumerate(lines):
+        m = _PY_DEF.match(line)
+        if m:
+            fn = m.group(1)
+            j = i + 1
+            while j < len(lines) and (not lines[j].strip() or _indent(lines[j]) > 0):
+                j += 1
+            gf.funcs[fn] = "\n".join(lines[i:j])
+        cm = _PY_CASE.match(line)
+        if cm:
+            lit = cm.group(1)
+            ind = _indent(line)
+            j = i + 1
+            while j < len(lines) and (not lines[j].strip() or _indent(lines[j]) > ind):
+                j += 1
+            gf.arms.setdefault(lit, []).append("\n".join(lines[i + 1 : j]))
+    for m in _PY_TABLE.finditer(raw):
+        lit, target = m.group(1), m.group(2)
+        if target in gf.funcs or "." in target:
+            gf.arms.setdefault(lit, []).append(f"{target}()")
+    return gf
+
+
 @dataclass
 class BridgeIndex:
     files: list[GdFile] = field(default_factory=list)
@@ -299,8 +337,11 @@ def index(root: str | pathlib.Path) -> BridgeIndex:
     idx = BridgeIndex()
     rootp = pathlib.Path(root)
     count = 0
-    for p in sorted([*rootp.rglob("*.gd"), *rootp.rglob("*.cs")]):
-        if count >= MAX_FILES or any(part in ("node_modules", ".git", "addons", "Library", "obj", "bin") for part in p.parts):
+    for p in sorted([*rootp.rglob("*.gd"), *rootp.rglob("*.cs"), *rootp.rglob("*.py")]):
+        if count >= MAX_FILES or any(
+            part in ("node_modules", ".git", "addons", "Library", "obj", "bin", "venv", ".venv", "__pycache__", "tests")
+            for part in p.parts
+        ):
             continue
         try:
             if p.is_symlink() or p.stat().st_size > MAX_FILE_BYTES:
@@ -309,7 +350,12 @@ def index(root: str | pathlib.Path) -> BridgeIndex:
         except OSError:
             continue
         rel = str(p.relative_to(rootp))
-        gf = _parse_cs(rel, src) if p.suffix == ".cs" else _parse_gd(rel, src)
+        if p.suffix == ".cs":
+            gf = _parse_cs(rel, src)
+        elif p.suffix == ".py":
+            gf = _parse_py(rel, src)
+        else:
+            gf = _parse_gd(rel, src)
         for cls in gf.classes:
             idx.classes.setdefault(cls, gf)
         if gf.arms:
@@ -329,7 +375,12 @@ class BridgeResult:
 
 def _analyse(gf: GdFile, body: str, depth: int, seen: set[str], res: BridgeResult, idx: BridgeIndex) -> bool:
     """Scan one body; recurse into helpers (same file, or `Class.Method` in another C# file). -> True if all resolved."""
-    sinks, dynamic = (_CS_SINKS, _CS_DYNAMIC) if gf.lang == "cs" else (_GD_SINKS, _GD_DYNAMIC)
+    if gf.lang == "cs":
+        sinks, dynamic = _CS_SINKS, _CS_DYNAMIC
+    elif gf.lang == "py":
+        sinks, dynamic = _PY_SINKS, _PY_DYNAMIC
+    else:
+        sinks, dynamic = _GD_SINKS, _GD_DYNAMIC
     complete = True
     for kind, rx in sinks.items():
         for m in rx.finditer(body):
