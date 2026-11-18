@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.10.0
+
+- Upgraded core dependency on `pyhroff-mcpaudit` to `>=0.8`.
+- Synchronized version reporting across CLI, metadata, and SARIF exporter.
+- Verified test suite compatibility with latest scanner modules.
+
 ## 0.9.1
 - **Cross-platform tool paths** (`aisec/extract.py`): relative file paths in extracted tool metadata are normalized using `.as_posix()`, ensuring uniform forward slashes across Windows, Linux, and macOS.
 - **Refusal recognition** (`aisec/redteam/judge.py`): heuristic judging now recognizes modern frontier refusal patterns ("I apologize, but I must decline...", "I am not permitted to fulfill...", "I must refuse...") to avoid misclassifying polite refusals as un-flagged benign responses.
