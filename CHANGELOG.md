@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.11.0
+
+- **Documentation-style poisoning (`aisec/poison.py`)**: Added procedural/documentation-style framing and omission/concealment patterns.
+- **Python bridge reachability (`aisec/reach_bridge.py`)**: Added Python engine-side dispatcher parsing (`case`/`if`/`elif` and dict dispatch tables) to `BridgeIndex`.
+- **SARIF 2.1.0 remediation (`aisec/sarif.py`)**: Populates `help.text` and `help.markdown` on rule definitions.
+- **Self-contained HTML report (`aisec/html_report.py`, `aisec/cli.py`)**: Added `aisec scan --html <path>` for zero-dependency dark-mode executive reports.
+
 ## 0.10.0
 
 - Upgraded core dependency on `pyhroff-mcpaudit` to `>=0.8`.
