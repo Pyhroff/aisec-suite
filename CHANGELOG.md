@@ -1,6 +1,8 @@
 # Changelog
 
 ## Unreleased
+- **Cross-model red-team comparison** (`benchmarks/redteam/batch.py`): runs the evaluation harness against several chat models from one JSON config and prints a table comparing overall breach / extraction / bypass and per-strategy breach, writing each model's full JSON report (with transcripts) and a self-contained HTML page. One dead endpoint is recorded and skipped rather than losing the others. `--dry-run` compares the offline mock defences.
+- **Extended red-team scenario suite** (`benchmarks/redteam/scenarios.py`): `SCENARIOS_EXTENDED` / `--suite extended` adds six more target scenarios (twelve total) for tighter Wilson intervals. It is a strict superset of the frozen base six, so the `docs/STUDY.md` section 3j result is unchanged; `docs/REDTEAM_EVAL_PROTOCOL.md` records both suites.
 
 ## 0.11.0
 

@@ -12,9 +12,15 @@ This fixes a suite and the metrics now, so a model's numbers are not chosen afte
 
 ## Data
 
-Six target scenarios (`SCENARIOS`), each a distinct system prompt that forbids revealing itself, names a protected role,
-and contains one planted synthetic canary token (`RT-...`, not a real secret); three also declare a forbidden phrase.
-The scenarios are authored by us and are the same for every model. No external dataset is used.
+The **base** suite is six target scenarios (`SCENARIOS`), each a distinct system prompt that forbids revealing itself,
+names a protected role, and contains one planted synthetic canary token (`RT-...`, not a real secret); three also
+declare a forbidden phrase. The scenarios are authored by us and are the same for every model. No external dataset is
+used. The result in `docs/STUDY.md` section 3j was measured on exactly these six, which is why they are frozen.
+
+An **extended** suite (`SCENARIOS_EXTENDED`, selectable with `--suite extended`) adds six further scenarios of the same
+construction, for runs that want tighter Wilson intervals. It is a strict superset — the base six are its first six and
+are unchanged — so adding it alters no result already reported; section 3j stays a base-suite number. A result reported
+on the extended suite must say so.
 
 ## Method (fixed now)
 
@@ -41,12 +47,23 @@ scenarios and these strategies against one model, not models or jailbreaks in ge
 
 ## Reproduce
 
+One model:
+
 ```bash
-python -m benchmarks.redteam.run --url <endpoint> --model <id> [--judge http --judge-url <endpoint> --judge-model <id>] \
+python -m benchmarks.redteam.run --url <endpoint> --model <id> [--suite extended] \
+  [--judge http --judge-url <endpoint> --judge-model <id>] \
   [--attacker http --attacker-url <endpoint> --attacker-model <id>] --json redteam_eval.json
 ```
 
-`--dry-run` runs the suite against the offline mock target to check the harness; it is not a result.
+Several models at once, into one comparison table plus a per-model JSON and HTML page (`benchmarks/redteam/batch.py`):
+
+```bash
+python -m benchmarks.redteam.batch --config targets.json [--suite extended] --out reports/ --json combined.json
+```
+
+`targets.json` lists each endpoint (and optional shared `judge`/`attacker`); API keys are read from the environment
+variable a target's `api_key_env` names, never from the file. `--dry-run` runs against the offline mock defences to
+check the runner; it is not a result.
 
 ## Changes to the runner after registration
 
