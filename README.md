@@ -51,7 +51,8 @@ The demo scans a small MCP server whose `add` tool hides an instruction to read 
 | RAG source documents | `ragsentry` | **Published** |
 | Fine-tuning datasets, agent traces | [`trainsentry`](https://github.com/Pyhroff/trainsentry), [`loopcheck`](https://github.com/Pyhroff/loopcheck) | Public source, not on PyPI; adapters included |
 | Package installs, package worms | `agent-install-guardrail`, `wormsentry` | Private, adapters included |
-| Model weights, inference receipts, activation traces, streaming side channels, formal checks of tool state machines | `weightspecter`, `attestinfer`, `circuitshield`, `tokenspecter`, `specprove-sec` | Research preview, private, evaluated only on synthetic fixtures |
+| Formal checks of tool state machines | [`specprove-sec`](https://github.com/Pyhroff/specprove-sec) | Public source, research prototype, not on PyPI; adapter included |
+| Model weights, inference receipts, activation traces, streaming side channels | `weightspecter`, `attestinfer`, `circuitshield`, `tokenspecter` | Research preview, private, evaluated only on synthetic fixtures |
 
 Only the **Published** rows are installable from PyPI today. Adapters for the other scanners activate when those packages are installed from source; otherwise the CLI reports them as unavailable instead of failing.
 

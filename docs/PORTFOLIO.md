@@ -16,14 +16,15 @@ Every specialist should expose the same chain:
 
 | Surface | Scanner | Maturity |
 |---|---|---|
-| Agent memory / context files | memsentry | published |
-| RAG source documents | ragsentry | published |
-| Fine-tuning data poisoning | trainsentry | private |
-| Agent loops / behavior | loopcheck | private |
+| Agent memory / context files | [memsentry](https://github.com/Pyhroff/memsentry) | published |
+| RAG source documents | [ragsentry](https://github.com/Pyhroff/ragsentry) (`pyhroff-ragsentry` on PyPI) | published |
+| Fine-tuning data poisoning | [trainsentry](https://github.com/Pyhroff/trainsentry) | public source, not on PyPI |
+| Agent loops / behavior | [loopcheck](https://github.com/Pyhroff/loopcheck) | public source, not on PyPI |
 | Agent install supply chain | agent-install-guardrail | private |
 | Package worms | wormsentry | private, early |
-| Weights, inference attestation, activation traces, stream side channels, formal tool-state checks | weightspecter, attestinfer, circuitshield, tokenspecter, specprove-sec | research preview, synthetic fixtures only |
-| Attack-side testing of the detectors | adversagen | private research |
+| Formal checks of tool state machines | [specprove-sec](https://github.com/Pyhroff/specprove-sec) | public source, research prototype |
+| Weights, inference attestation, activation traces, stream side channels | weightspecter, attestinfer, circuitshield, tokenspecter | private research preview, synthetic fixtures only |
+| Attack-side testing of the detectors | [adversagen](https://github.com/Pyhroff/adversagen) | public source, research |
 
 ## Promotion rule
 
