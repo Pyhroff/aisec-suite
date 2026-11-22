@@ -378,7 +378,7 @@ File: `aisec/poison.py` (stdlib only, **no model call**).
 
 ### 6.1 The problem with keywords
 
-Published attacks use phrases like "ignore previous instructions" and `<IMPORTANT>`. A keyword/regex detector scores
+Published attacks reuse a small set of stock override phrases and marker tags. A keyword/regex detector scores
 well on those and **0% on a held-out set** written with different phrasing (naive regex: seen 42.6% → held-out 0.0%).
 It memorises its own examples.
 
@@ -431,10 +431,13 @@ outright but never feeds the "rest" sum (that would double-count).
 
 `views(text)` returns the raw text **plus de-obfuscated versions**, and every view is scored; the maximum wins:
 
-```python
-_INVISIBLE   = re.compile("[​-‏‪-‮⁠-⁤⁦-⁩﻿­]")   # zero-width / bidi / soft-hyphen
-_TAG_BLOCK   = re.compile("[\U000e0020-\U000e007e]+")                   # Unicode tag block (invisible ASCII smuggling)
-```
+Two regex character classes drive the hidden-text detection (written out by code point here on purpose: pasting the
+raw characters into a doc makes the repo's own scanner flag it, correctly):
+
+- `_INVISIBLE`: zero-width and directional format characters (U+200B to U+200F, U+202A to U+202E, U+2060 to U+2064,
+  U+2066 to U+2069), the byte-order mark (U+FEFF) and the soft hyphen (U+00AD).
+- `_TAG_BLOCK`: the Unicode **tag block**, U+E0020 to U+E007E, which maps one-to-one onto printable ASCII but renders
+  as nothing ("invisible ASCII smuggling").
 
 Layers handled: invisible characters stripped, Unicode **tag block** decoded back to ASCII, **bidi override**
 reversed, NFKC normalisation, **confusable folding** (Cyrillic/Greek/Armenian/small-cap look-alikes → Latin), a
