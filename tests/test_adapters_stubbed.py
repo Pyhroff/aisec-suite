@@ -300,3 +300,43 @@ def test_command_center_remediate_and_dashboard(fake_scanners, tmp_path):
 
 
 
+
+
+
+def test_training_adapter_reads_trainsentry_per_file_json(monkeypatch, tmp_path):
+    """trainsentry writes {"<dataset>": [findings]} and is run as `python -m trainsentry.cli scan DATASET --json OUT`.
+    That shape used to parse as zero findings, so `aisec training` passed a poisoned dataset."""
+    pkg = tmp_path / "stubs" / "trainsentry"
+    pkg.mkdir(parents=True)
+    (pkg / "__init__.py").write_text("", encoding="utf-8")
+    (pkg / "cli.py").write_text(textwrap.dedent('''
+        import json, sys
+        args = sys.argv[1:]
+        assert args[0] == "scan", args
+        dataset, out = args[1], args[args.index("--json") + 1]
+        json.dump({dataset: [{"check": "instruction_injection", "severity": "critical", "title": "standing instruction",
+                              "detail": "d", "file": dataset, "line": 3, "record_index": 2, "snippet": "s"}]},
+                  open(out, "w"))
+    '''), encoding="utf-8")
+    monkeypatch.setenv("PYTHONPATH", str(tmp_path / "stubs"))
+    dataset = tmp_path / "train.jsonl"
+    dataset.write_text('{"prompt": "q", "completion": "a"}\n', encoding="utf-8")
+    out = tmp_path / "findings.json"
+
+    result = runner.invoke(app, ["training", str(dataset), "--json", str(out), "--fail-on", "high"])
+
+    assert result.exit_code == 1, result.output
+    findings = json.loads(out.read_text(encoding="utf-8"))
+    assert [(f["scanner"], f["severity"], f["line"]) for f in findings] == [("trainsentry", "critical", 3)]
+
+
+def test_payload_parser_accepts_all_report_shapes(tmp_path):
+    from aisec.native_adapters import _findings_from_payload
+
+    item = {"check": "c", "title": "t", "severity": "high", "detail": "d", "line": 7}
+    for payload in ({"findings": [item]}, {"results": [item]}, [item], {"a.jsonl": [item]}):
+        (f,) = _findings_from_payload("s", payload, tmp_path)
+        assert (f.severity, f.line) == ("high", 7)
+    (f,) = _findings_from_payload("s", {"a.jsonl": [{"severity": "low"}]}, tmp_path)
+    assert f.file == "a.jsonl"
+    assert _findings_from_payload("s", {"agent_name": "x", "goal": "y"}, tmp_path) == []

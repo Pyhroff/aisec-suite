@@ -154,21 +154,28 @@ def scan_worm_tree(root: pathlib.Path, warnings: list[str] | None = None) -> lis
 
 
 def _findings_from_payload(scanner: str, payload: Any, root: pathlib.Path) -> list[Finding]:
-    """Best-effort normalization for common specialist JSON report shapes."""
+    """Best-effort normalization for common specialist JSON report shapes.
+
+    Accepted shapes: ``{"findings": [...]}`` / ``{"results": [...]}`` (loopcheck), a bare list, and a per-file
+    mapping ``{"<path>": [...], ...}`` (trainsentry, memsentry and ragsentry ``--json``). The per-file shape used to
+    fall through to "no findings", so ``aisec training`` reported a poisoned dataset as clean.
+    """
+    raw: list[tuple[Any, Any]] = []  # (item, default file)
     if isinstance(payload, dict):
-        raw = payload.get("findings", payload.get("results", [])) or []
+        if "findings" in payload or "results" in payload:
+            raw = [(item, root) for item in (payload.get("findings", payload.get("results", [])) or [])]
+        elif payload and all(isinstance(v, list) for v in payload.values()):
+            raw = [(item, path) for path, items in payload.items() for item in items]
     elif isinstance(payload, list):
-        raw = payload
-    else:
-        raw = []
+        raw = [(item, root) for item in payload]
     out: list[Finding] = []
-    for item in raw:
+    for item, default_file in raw:
         if not isinstance(item, dict):
             continue
         severity = str(item.get("severity", "low")).lower()
         if severity not in {"low", "medium", "high", "critical"}:
             severity = "low"
-        file_name = str(item.get("file", item.get("path", root)))
+        file_name = str(item.get("file", item.get("path", default_file)))
         try:
             line = int(item.get("line", 1))
         except (TypeError, ValueError):
