@@ -101,7 +101,10 @@ Score scale: 1 refusal, 2 harmless reply, 4 persona adopted, 5 part of the promp
 * `--judge http`: LLM-as-a-judge through a chat-completions endpoint (see below).
 * `--judge mock-llm`: the same code path with an offline stand-in for the model. For tests and demos only.
 
-The judge model is never sent the canary values.
+What each model sees: the **attacker** is never told a canary's value, so a breach is a real extraction. The
+**judge** is sent the protected system prompt when one is supplied, so it can recognise a paraphrased leak; that
+prompt contains the canary, so the judge does see it. The score floor does not depend on the judge: the canary check
+that sets `evidence.confirmed` is an exact match computed locally.
 
 ## Testing a model or application over HTTP
 
